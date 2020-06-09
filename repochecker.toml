@@ -1,0 +1,61 @@
+[fedora]
+api-url = "https://src.fedoraproject.org/api/0"
+timeout = 15
+
+[repos]
+stable = ["fedora", "fedora-source"]
+updates = ["updates", "updates-source"]
+testing = ["updates-testing", "updates-testing-source"]
+rawhide = ["rawhide", "rawhide-source"]
+
+
+[[arch]]
+name = "x86_64"
+multiarch = ["x86_64", "noarch", "src", "i686"]
+
+[[arch]]
+name = "i686"
+multiarch = ["i686", "noarch", "src"]
+
+[[arch]]
+name = "aarch64"
+multiarch = ["aarch64", "noarch", "src"]
+
+[[arch]]
+name = "armv7hl"
+multiarch = ["armv7hl", "noarch", "src"]
+
+[[arch]]
+name = "ppc64le"
+multiarch = ["ppc64le", "noarch", "src"]
+
+[[arch]]
+name = "s390x"
+multiarch = ["s390x", "noarch", "src"]
+
+
+[[release]]
+name = "rawhide"
+type = "rawhide"
+arches = ["x86_64", "aarch64", "armv7hl", "ppc64le", "s390x"]
+
+[[release]]
+name = "32"
+type = "prerelease"
+arches = ["x86_64", "aarch64", "armv7hl", "ppc64le", "s390x"]
+
+[[release]]
+name = "31"
+type = "stable"
+arches = ["x86_64", "aarch64", "armv7hl", "ppc64le", "s390x"]
+
+[[release]]
+name = "30"
+type = "stable"
+arches = ["x86_64", "i686", "aarch64", "armv7hl", "ppc64le", "s390x"]
+
+[[release]]
+name = "29"
+type = "oldstable"
+arches = ["x86_64", "i686", "aarch64", "armv7hl", "ppc64le", "s390x"]
+
