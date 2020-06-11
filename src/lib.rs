@@ -1,8 +1,5 @@
-#![allow(dead_code)]
-
-mod compose;
-mod config;
+pub mod config;
 mod overrides;
-mod pagure;
+pub mod pagure;
 mod parse;
-mod repo;
+pub mod repo;

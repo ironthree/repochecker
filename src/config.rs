@@ -3,57 +3,47 @@ use std::fs::read_to_string;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
-struct Config {
-    fedora: FedoraConfig,
-    repos: RepoConfig,
+pub struct Config {
+    pub repos: RepoConfig,
     #[serde(rename = "arch")]
-    arches: Vec<ArchConfig>,
+    pub arches: Vec<ArchConfig>,
     #[serde(rename = "release")]
-    releases: Vec<ReleaseConfig>,
+    pub releases: Vec<ReleaseConfig>,
 }
 
 #[derive(Debug, Deserialize)]
-struct FedoraConfig {
-    #[serde(rename = "api-url")]
-    api_url: String,
-    timeout: u64,
+pub struct RepoConfig {
+    pub stable: Vec<String>,
+    pub updates: Vec<String>,
+    pub testing: Vec<String>,
+    pub rawhide: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
-struct RepoConfig {
-    stable: Vec<String>,
-    updates: Vec<String>,
-    testing: Vec<String>,
-    rawhide: Vec<String>,
+pub struct ArchConfig {
+    pub name: String,
+    pub multiarch: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
-struct ArchConfig {
-    name: String,
-    multiarch: Vec<String>,
-}
-
-#[derive(Debug, Deserialize)]
-struct ReleaseConfig {
-    name: String,
+pub struct ReleaseConfig {
+    pub name: String,
     #[serde(rename = "type")]
-    rtype: ReleaseType,
-    arches: Vec<String>,
+    pub rtype: ReleaseType,
+    pub arches: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
-enum ReleaseType {
+pub enum ReleaseType {
     #[serde(rename = "rawhide")]
     Rawhide,
     #[serde(rename = "prerelease")]
     PreRelease,
     #[serde(rename = "stable")]
     Stable,
-    #[serde(rename = "oldstable")]
-    OldStable,
 }
 
-fn get_config() -> Result<Config, String> {
+pub fn get_config() -> Result<Config, String> {
     let path = "repochecker.toml";
     let contents = match read_to_string(path) {
         Ok(string) => string,

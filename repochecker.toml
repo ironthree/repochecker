@@ -1,7 +1,3 @@
-[fedora]
-api-url = "https://src.fedoraproject.org/api/0"
-timeout = 15
-
 [repos]
 stable = ["fedora", "fedora-source"]
 updates = ["updates", "updates-source"]
@@ -41,21 +37,11 @@ arches = ["x86_64", "aarch64", "armv7hl", "ppc64le", "s390x"]
 
 [[release]]
 name = "32"
-type = "prerelease"
+type = "stable"
 arches = ["x86_64", "aarch64", "armv7hl", "ppc64le", "s390x"]
 
 [[release]]
 name = "31"
 type = "stable"
 arches = ["x86_64", "aarch64", "armv7hl", "ppc64le", "s390x"]
-
-[[release]]
-name = "30"
-type = "stable"
-arches = ["x86_64", "i686", "aarch64", "armv7hl", "ppc64le", "s390x"]
-
-[[release]]
-name = "29"
-type = "oldstable"
-arches = ["x86_64", "i686", "aarch64", "armv7hl", "ppc64le", "s390x"]
 
