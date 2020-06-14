@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -346,15 +346,62 @@ pub fn get_repo_closure(
     check: &[String],
     admins: &HashMap<String, String>,
 ) -> Result<Vec<BrokenDep>, String> {
-    let mut all_broken: Vec<BrokenDep> = Vec::new();
+    // check which source packages do not produce any binary packages on a given architecture
+    // (emulates detection of ExcludeArch / ExclusiveArch, which cannot be queried directly)
+    let mut all_packages: HashSet<String> = HashSet::new();
+    let mut arch_map: HashMap<&str, Vec<String>> = HashMap::new();
 
     for arch in arches {
-        make_cache(release, arch, repos)?;
-        let multi = multi_arch.get(arch).unwrap();
+        let packages = get_repo_contents(release, arch, repos)?;
+        let mut built: Vec<String> = Vec::new();
 
-        let broken = get_repo_closure_arched(release, arch, multi, repos, check, admins)?;
+        for package in packages {
+            if package.arch == "src" {
+                continue;
+            }
+
+            built.push(package.source_name.clone());
+            all_packages.insert(package.source_name.clone());
+        }
+
+        arch_map.insert(arch, built);
+    }
+
+    let mut excluded: HashMap<&str, HashSet<&str>> = HashMap::new();
+    for arch in arches {
+        let arch_packages = arch_map.get(arch.as_str()).expect("Something went terribly wrong.");
+        let mut arch_excluded: HashSet<&str> = HashSet::new();
+
+        for package in &all_packages {
+            if !arch_packages.contains(package) {
+                debug!(
+                    "Skipping {} on {} / {} due to detected ExclusiveArch / ExcludeArch.",
+                    package, release, arch
+                );
+                arch_excluded.insert(package);
+            }
+        }
+
+        excluded.insert(arch, arch_excluded);
+    }
+
+    let mut all_broken: Vec<BrokenDep> = Vec::new();
+    for arch in arches {
+        make_cache(release, arch, repos)?;
+
+        let multi = multi_arch.get(arch).unwrap();
+        let arch_excluded = excluded.get(arch.as_str()).expect("Something went terribly wrong.");
+
+        let mut broken = get_repo_closure_arched(release, arch, multi, repos, check, admins)?;
+
+        // skip source packages that do not produce any binaries on this architecture,
+        // because this means that the current architecture is probably excluded
+        broken.retain(|item| !(item.arch == "src" && arch_excluded.contains(&item.source.as_str())));
+
         all_broken.extend(broken);
     }
+
+    // TODO: consider overrides from config file
 
     // sort by (source, package, arch)
     all_broken.sort_by(|a, b| (&a.source, &a.package, &a.arch).cmp(&(&b.source, &b.package, &b.arch)));
