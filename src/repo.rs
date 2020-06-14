@@ -25,7 +25,7 @@ fn get_cache_path(release: &str, arch: &str) -> Result<PathBuf, String> {
     Ok(path)
 }
 
-pub fn make_cache(release: &str, arch: &str, repos: &[String]) -> Result<(), String> {
+fn make_cache(release: &str, arch: &str, repos: &[String]) -> Result<(), String> {
     let path = get_cache_path(release, arch)?;
 
     let mut dnf = Command::new("dnf");
@@ -108,6 +108,7 @@ fn get_repo_contents(release: &str, arch: &str, repos: &[String]) -> Result<Vec<
     for line in lines {
         let mut split = line.split(' ');
 
+        // match only exactly 6 components
         match (
             split.next(),
             split.next(),
@@ -115,17 +116,24 @@ fn get_repo_contents(release: &str, arch: &str, repos: &[String]) -> Result<Vec<
             split.next(),
             split.next(),
             split.next(),
+            split.next(),
         ) {
-            (Some(name), Some(source), Some(epoch), Some(version), Some(release), Some(arch)) => {
-                packages.push(Package {
-                    name: name.to_string(),
-                    source_name: source.to_string(),
-                    epoch: epoch.parse().unwrap(),
-                    version: version.to_string(),
-                    release: release.to_string(),
-                    arch: arch.to_string(),
-                })
-            }
+            (
+                Some(name),
+                Some(source),
+                Some(epoch),
+                Some(version),
+                Some(release),
+                Some(arch),
+                None,
+            ) => packages.push(Package {
+                name: name.to_string(),
+                source_name: source.to_string(),
+                epoch: epoch.parse().unwrap(),
+                version: version.to_string(),
+                release: release.to_string(),
+                arch: arch.to_string(),
+            }),
             _ => return Err(format!("Failed to parse line: {}", line)),
         };
     }
@@ -137,6 +145,10 @@ fn get_source_map(contents: &[Package]) -> HashMap<&str, &str> {
     let mut map: HashMap<&str, &str> = HashMap::new();
 
     for package in contents {
+        if package.arch == "src" {
+            continue;
+        }
+
         map.insert(&package.name, &package.source_name);
     }
 
@@ -156,7 +168,7 @@ pub struct BrokenDep {
     pub admin: String,
 }
 
-pub fn get_repo_closure(
+fn get_repo_closure_arched(
     release: &str,
     arch: &str,
     multi_arch: &[String],
@@ -286,4 +298,30 @@ pub fn get_repo_closure(
     }
 
     Ok(broken_deps)
+}
+
+pub fn get_repo_closure(
+    release: &str,
+    arches: &[String],
+    multi_arch: &HashMap<String, Vec<String>>,
+    repos: &[String],
+    admins: &HashMap<String, String>,
+) -> Result<Vec<BrokenDep>, String> {
+    let mut all_broken: Vec<BrokenDep> = Vec::new();
+
+    for arch in arches {
+        make_cache(release, arch, repos)?;
+
+        let multi = multi_arch.get(arch).unwrap();
+
+        let broken = get_repo_closure_arched(release, arch, multi, repos, admins)?;
+
+        all_broken.extend(broken);
+    }
+
+    // sort by (source, package, arch)
+    all_broken
+        .sort_by(|a, b| (&a.source, &a.package, &a.arch).cmp(&(&b.source, &b.package, &b.arch)));
+
+    Ok(all_broken)
 }

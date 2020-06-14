@@ -2,7 +2,7 @@ use std::fs::read_to_string;
 
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Config {
     pub repos: RepoConfig,
     #[serde(rename = "arch")]
@@ -11,7 +11,7 @@ pub struct Config {
     pub releases: Vec<ReleaseConfig>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct RepoConfig {
     pub stable: Vec<String>,
     pub updates: Vec<String>,
@@ -19,13 +19,13 @@ pub struct RepoConfig {
     pub rawhide: Vec<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct ArchConfig {
     pub name: String,
     pub multiarch: Vec<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct ReleaseConfig {
     pub name: String,
     #[serde(rename = "type")]
@@ -33,7 +33,7 @@ pub struct ReleaseConfig {
     pub arches: Vec<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub enum ReleaseType {
     #[serde(rename = "rawhide")]
     Rawhide,
