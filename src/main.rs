@@ -35,7 +35,7 @@ async fn watcher(state: GlobalState) {
             let mut guard = state.lock().expect("Found a poisoned mutex.");
             let mut state = &mut *guard;
             state.config = config;
-        }
+        },
         Err(error) => error!("Failed to read updated configuration: {}", error),
     };
 
@@ -44,7 +44,7 @@ async fn watcher(state: GlobalState) {
             let mut guard = state.lock().expect("Found a poisoned mutex.");
             let mut state = &mut *guard;
             state.admins = admins;
-        }
+        },
         Err(error) => error!("Failed to read updated package maintainers: {}", error),
     };
 }
@@ -58,17 +58,12 @@ async fn worker(state: GlobalState, entry: MatrixEntry) {
     // populate data with cached values from file, if available
     let cached = read_json_from_file(&json_path);
     if let Ok(values) = cached {
-        info!(
-            "Reusing cached data for {} until fresh data is available.",
-            &pretty
-        );
+        info!("Reusing cached data for {} until fresh data is available.", &pretty);
 
         let mut guard = state.lock().expect("Found a poisoned mutex.");
         let state = &mut *guard;
 
-        state
-            .values
-            .insert(format!("{}{}", &entry.release, suffix), values);
+        state.values.insert(format!("{}{}", &entry.release, suffix), values);
     };
 
     info!("Generating data for {}", &pretty);
@@ -87,13 +82,12 @@ async fn worker(state: GlobalState, entry: MatrixEntry) {
         state.admins.clone()
     };
 
-    let broken = match get_repo_closure(&entry.release, &arches, &multi_arch, &entry.repos, &admins)
-    {
+    let broken = match get_repo_closure(&entry.release, &arches, &multi_arch, &entry.repos, &admins) {
         Ok(broken) => broken,
         Err(error) => {
             error!("Failed to generate repoclosure: {}", error);
             return;
-        }
+        },
     };
 
     if write_json_to_file(&json_path, &broken).is_err() {
@@ -105,11 +99,7 @@ async fn worker(state: GlobalState, entry: MatrixEntry) {
         let state = &mut *guard;
 
         state.values.insert(
-            format!(
-                "{}{}",
-                &entry.release,
-                if entry.with_testing { "-testing" } else { "" }
-            ),
+            format!("{}{}", &entry.release, if entry.with_testing { "-testing" } else { "" }),
             broken,
         );
     }
@@ -160,7 +150,9 @@ async fn main() -> Result<(), String> {
     tokio::spawn(serve(state.clone()));
 
     loop {
-        tokio::spawn(watcher(state.clone()));
+        if tokio::spawn(watcher(state.clone())).await.is_err() {
+            error!("Failed to reload configuration from disk.");
+        };
 
         let config = {
             let guard = state.lock().expect("Found a poisoned mutex.");
@@ -169,14 +161,18 @@ async fn main() -> Result<(), String> {
 
         let matrix = matrix_from_config(&config)?;
 
-        let handles = matrix
+        // spawn worker threads (.collect() forces the iterator to be evaluated eagerly)
+        let handles: Vec<_> = matrix
             .into_iter()
-            .map(|entry| tokio::spawn(worker(state.clone(), entry)));
+            .map(|entry| tokio::spawn(worker(state.clone(), entry)))
+            .collect();
 
+        // wait for threads to finish
         for handle in handles {
             handle.await.map_err(|error| error.to_string())?;
         }
 
+        // maybe make this configurable?
         let wait = 6;
 
         info!("Finished generating data. Refreshing in {} hours.", wait);

@@ -47,9 +47,21 @@ fn make_cache(release: &str, arch: &str, repos: &[String]) -> Result<(), String>
     let output = dnf.output().map_err(|error| error.to_string())?;
 
     if !output.status.success() {
-        debug!("dnf makecache exited with an error code:",);
-        debug!("{}", String::from_utf8(output.stdout).unwrap());
-        debug!("{}", String::from_utf8(output.stderr).unwrap());
+        debug!("dnf makecache exited with an error code:");
+        debug!(
+            "{}",
+            match String::from_utf8(output.stdout) {
+                Ok(string) => string,
+                Err(error) => format!("Failed to decode dnf output: {}", error.to_string()),
+            }
+        );
+        debug!(
+            "{}",
+            match String::from_utf8(output.stderr) {
+                Ok(string) => string,
+                Err(error) => format!("Failed to decode dnf output: {}", error.to_string()),
+            }
+        );
         return Err(String::from("dnf makecache exited with an error code."));
     };
 
@@ -92,8 +104,20 @@ fn get_repo_contents(release: &str, arch: &str, repos: &[String]) -> Result<Vec<
 
     if !output.status.success() {
         debug!("dnf makecache exited with an error code:",);
-        debug!("{}", String::from_utf8(output.stdout).unwrap());
-        debug!("{}", String::from_utf8(output.stderr).unwrap());
+        debug!(
+            "{}",
+            match String::from_utf8(output.stdout) {
+                Ok(string) => string,
+                Err(error) => format!("Failed to decode dnf output: {}", error.to_string()),
+            }
+        );
+        debug!(
+            "{}",
+            match String::from_utf8(output.stderr) {
+                Ok(string) => string,
+                Err(error) => format!("Failed to decode dnf output: {}", error.to_string()),
+            }
+        );
         return Err(String::from("dnf repoquery exited with an error code."));
     };
 
@@ -118,22 +142,19 @@ fn get_repo_contents(release: &str, arch: &str, repos: &[String]) -> Result<Vec<
             split.next(),
             split.next(),
         ) {
-            (
-                Some(name),
-                Some(source),
-                Some(epoch),
-                Some(version),
-                Some(release),
-                Some(arch),
-                None,
-            ) => packages.push(Package {
-                name: name.to_string(),
-                source_name: source.to_string(),
-                epoch: epoch.parse().unwrap(),
-                version: version.to_string(),
-                release: release.to_string(),
-                arch: arch.to_string(),
-            }),
+            (Some(name), Some(source), Some(epoch), Some(version), Some(release), Some(arch), None) => {
+                packages.push(Package {
+                    name: name.to_string(),
+                    source_name: source.to_string(),
+                    epoch: match epoch.parse() {
+                        Ok(value) => value,
+                        Err(error) => return Err(format!("Failed to parse Epoch value: {}", error)),
+                    },
+                    version: version.to_string(),
+                    release: release.to_string(),
+                    arch: arch.to_string(),
+                })
+            },
             _ => return Err(format!("Failed to parse line: {}", line)),
         };
     }
@@ -240,7 +261,7 @@ fn get_repo_closure_arched(
             None => {
                 error!("Unable to determine maintainer for {}", &source);
                 String::from("(N/A)")
-            }
+            },
         };
 
         Ok(BrokenDep {
@@ -272,13 +293,8 @@ fn get_repo_closure_arched(
                         repo,
                         broken: Vec::new(),
                     });
-                }
-                _ => {
-                    return Err(format!(
-                        "Failed to parse line from repoclosure output: {}",
-                        line
-                    ))
-                }
+                },
+                _ => return Err(format!("Failed to parse line from repoclosure output: {}", line)),
             }
         } else if line.starts_with("  unresolved deps:") {
             continue;
@@ -320,8 +336,7 @@ pub fn get_repo_closure(
     }
 
     // sort by (source, package, arch)
-    all_broken
-        .sort_by(|a, b| (&a.source, &a.package, &a.arch).cmp(&(&b.source, &b.package, &b.arch)));
+    all_broken.sort_by(|a, b| (&a.source, &a.package, &a.arch).cmp(&(&b.source, &b.package, &b.arch)));
 
     Ok(all_broken)
 }

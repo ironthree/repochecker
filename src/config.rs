@@ -111,7 +111,7 @@ pub fn matrix_from_config(config: &Config) -> Result<Vec<MatrixEntry>, String> {
                         with_testing: true,
                     },
                 ]
-            }
+            },
         };
 
         let mut arches: Vec<Arch> = Vec::new();
@@ -132,7 +132,7 @@ pub fn matrix_from_config(config: &Config) -> Result<Vec<MatrixEntry>, String> {
                         "Could not find multiarch configuration for {}/{}.",
                         &release.name, &arch
                     ))
-                }
+                },
             };
 
             arches.push(Arch {

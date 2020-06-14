@@ -31,11 +31,10 @@ pub async fn get_admins(timeout: u64) -> Result<HashMap<String, String>, String>
         Err(error) => return Err(error.to_string()),
     };
 
-    let pocs: PocPage =
-        match serde_json::from_str(&response.text().await.map_err(|error| error.to_string())?) {
-            Ok(pocs) => pocs,
-            Err(error) => return Err(error.to_string()),
-        };
+    let pocs: PocPage = match serde_json::from_str(&response.text().await.map_err(|error| error.to_string())?) {
+        Ok(pocs) => pocs,
+        Err(error) => return Err(error.to_string()),
+    };
 
     Ok(pocs
         .rpms

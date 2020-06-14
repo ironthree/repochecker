@@ -23,11 +23,7 @@ pub fn get_json_path(release: &str, testing: bool) -> PathBuf {
 pub fn write_json_to_file(path: &PathBuf, broken: &[BrokenDep]) -> Result<(), String> {
     let json = match serde_json::to_string_pretty(&broken) {
         Ok(json) => json,
-        Err(_) => {
-            return Err(String::from(
-                "Failed to serialize broken dependencies into JSON.",
-            ))
-        }
+        Err(_) => return Err(String::from("Failed to serialize broken dependencies into JSON.")),
     };
 
     let data_path = get_data_path();
@@ -37,10 +33,7 @@ pub fn write_json_to_file(path: &PathBuf, broken: &[BrokenDep]) -> Result<(), St
     }
 
     if std::fs::write(&path, json).is_err() {
-        return Err(format!(
-            "Failed to write data to disk: {}",
-            &path.to_string_lossy()
-        ));
+        return Err(format!("Failed to write data to disk: {}", &path.to_string_lossy()));
     }
 
     Ok(())
