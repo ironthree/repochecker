@@ -6,6 +6,7 @@ use log::debug;
 use log::error;
 use serde::{Deserialize, Serialize};
 
+use crate::overrides::{is_overridden, Overrides};
 use crate::parse::parse_nevra;
 
 #[derive(Debug)]
@@ -184,11 +185,13 @@ pub struct BrokenDep {
     pub release: String,
     pub arch: String,
     pub repo: String,
+    pub repo_arch: String,
     pub source: String,
     pub broken: Vec<String>,
     pub admin: String,
 }
 
+#[allow(clippy::many_single_char_names)]
 fn get_repo_closure_arched_repo(
     release: &str,
     arch: &str,
@@ -228,8 +231,6 @@ fn get_repo_closure_arched_repo(
     dnf.arg("--check");
     dnf.arg(check);
 
-    debug!("running dnf command: {:#?}", &dnf);
-
     let output = dnf.output().map_err(|error| error.to_string())?;
 
     let string = String::from_utf8(output.stdout)
@@ -248,15 +249,14 @@ fn get_repo_closure_arched_repo(
     };
 
     let state_to_dep = |state: State| -> Result<BrokenDep, String> {
-        let package = state.nevra.0;
-        let arch = state.nevra.4;
+        let (n, e, v, r, a) = state.nevra;
 
-        let source = if arch == "src" {
-            package
+        let source = if a == "src" {
+            n
         } else {
-            match source_map.get(package) {
+            match source_map.get(n) {
                 Some(source) => source,
-                None => return Err(format!("Unable to find source package for {}", &package)),
+                None => return Err(format!("Unable to find source package for {}", n)),
             }
         };
 
@@ -269,11 +269,12 @@ fn get_repo_closure_arched_repo(
         };
 
         Ok(BrokenDep {
-            package: state.nevra.0.to_string(),
-            epoch: state.nevra.1.to_string(),
-            version: state.nevra.2.to_string(),
-            release: state.nevra.3.to_string(),
-            arch: state.nevra.4.to_string(),
+            package: n.to_string(),
+            epoch: e.to_string(),
+            version: v.to_string(),
+            release: r.to_string(),
+            arch: a.to_string(),
+            repo_arch: arch.to_string(),
             repo: state.repo.to_string(),
             source: source.to_string(),
             broken: state.broken.iter().map(|s| s.to_string()).collect(),
@@ -344,6 +345,7 @@ pub fn get_repo_closure(
     multi_arch: &HashMap<String, Vec<String>>,
     repos: &[String],
     check: &[String],
+    overrides: &Overrides,
     admins: &HashMap<String, String>,
 ) -> Result<Vec<BrokenDep>, String> {
     // check which source packages do not produce any binary packages on a given architecture
@@ -401,7 +403,15 @@ pub fn get_repo_closure(
         all_broken.extend(broken);
     }
 
-    // TODO: consider overrides from config file
+    all_broken.iter_mut().for_each(|item| {
+        let arch = item.repo_arch.clone();
+        let package = item.package.clone();
+
+        item.broken
+            .retain(|broken| !is_overridden(overrides, release, &arch, &package, broken))
+    });
+
+    all_broken.retain(|item| !item.broken.is_empty());
 
     // sort by (source, package, arch)
     all_broken.sort_by(|a, b| (&a.source, &a.package, &a.arch).cmp(&(&b.source, &b.package, &b.arch)));

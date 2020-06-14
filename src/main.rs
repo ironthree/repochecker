@@ -9,20 +9,23 @@ use tokio::time::delay_for;
 use warp::Filter;
 
 use repochecker::config::{get_config, matrix_from_config, Config, MatrixEntry};
+use repochecker::overrides::{get_overrides, Overrides};
 use repochecker::pagure::get_admins;
 use repochecker::repo::{get_repo_closure, BrokenDep};
 use repochecker::utils::{get_json_path, read_json_from_file, write_json_to_file};
 
 struct State {
     config: Config,
+    overrides: Overrides,
     admins: HashMap<String, String>,
     values: HashMap<String, Vec<BrokenDep>>,
 }
 
 impl State {
-    fn init(config: Config, admins: HashMap<String, String>) -> State {
+    fn init(config: Config, overrides: Overrides, admins: HashMap<String, String>) -> State {
         State {
             config,
+            overrides,
             admins,
             values: HashMap::new(),
         }
@@ -39,6 +42,15 @@ async fn watcher(state: GlobalState) {
             state.config = config;
         },
         Err(error) => error!("Failed to read updated configuration: {}", error),
+    };
+
+    match get_overrides() {
+        Ok(overrides) => {
+            let mut guard = state.lock().expect("Found a poisoned mutex.");
+            let mut state = &mut *guard;
+            state.overrides = overrides;
+        },
+        Err(error) => error!("Failed to read updated overrides: {}", error),
     };
 
     match get_admins(15).await {
@@ -78,6 +90,12 @@ async fn worker(state: GlobalState, entry: MatrixEntry) {
         multi_arch.insert(arch.name.clone(), arch.multi_arch.clone());
     }
 
+    let overrides = {
+        let guard = state.lock().expect("Found a poisoned mutex.");
+        let state = &*guard;
+        state.overrides.clone()
+    };
+
     let admins = {
         let guard = state.lock().expect("Found a poisoned mutex.");
         let state = &*guard;
@@ -90,6 +108,7 @@ async fn worker(state: GlobalState, entry: MatrixEntry) {
         &multi_arch,
         &entry.repos,
         &entry.check,
+        &overrides,
         &admins,
     ) {
         Ok(broken) => broken,
@@ -150,19 +169,17 @@ async fn main() -> Result<(), String> {
     env_logger::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     let config = get_config()?;
+    let overrides = get_overrides()?;
+
     let admins = tokio::spawn(get_admins(15))
         .await
         .map_err(|error| error.to_string())??;
 
-    let state: GlobalState = Arc::new(Mutex::new(State::init(config, admins)));
+    let state: GlobalState = Arc::new(Mutex::new(State::init(config, overrides, admins)));
 
     tokio::spawn(serve(state.clone()));
 
     loop {
-        if tokio::spawn(watcher(state.clone())).await.is_err() {
-            error!("Failed to reload configuration from disk.");
-        };
-
         let config = {
             let guard = state.lock().expect("Found a poisoned mutex.");
             guard.config.clone()
@@ -189,5 +206,9 @@ async fn main() -> Result<(), String> {
         tokio::spawn(delay_for(Duration::from_secs(60 * 60 * wait)))
             .await
             .map_err(|error| error.to_string())?;
+
+        if tokio::spawn(watcher(state.clone())).await.is_err() {
+            error!("Failed to reload configuration from disk.");
+        };
     }
 }
