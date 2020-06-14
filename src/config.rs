@@ -57,3 +57,99 @@ pub fn get_config() -> Result<Config, String> {
 
     Ok(config)
 }
+
+#[derive(Debug)]
+pub struct MatrixEntry {
+    pub release: String,
+    pub arches: Vec<Arch>,
+    pub repos: Vec<String>,
+    pub with_testing: bool,
+}
+
+#[derive(Clone, Debug)]
+pub struct Arch {
+    pub name: String,
+    pub multi_arch: Vec<String>,
+}
+
+pub fn matrix_from_config(config: &Config) -> Result<Vec<MatrixEntry>, String> {
+    let mut matrix: Vec<MatrixEntry> = Vec::new();
+
+    #[derive(Debug)]
+    struct Repos {
+        repos: Vec<String>,
+        with_testing: bool,
+    }
+
+    for release in &config.releases {
+        let repos = match &release.rtype {
+            ReleaseType::Rawhide => vec![Repos {
+                repos: config.repos.rawhide.clone(),
+                with_testing: false,
+            }],
+            ReleaseType::PreRelease => vec![Repos {
+                repos: config.repos.stable.clone(),
+                with_testing: false,
+            }],
+            ReleaseType::Stable => {
+                let mut stable_repos = Vec::new();
+                stable_repos.extend(config.repos.stable.clone());
+                stable_repos.extend(config.repos.updates.clone());
+
+                let mut testing_repos = Vec::new();
+                testing_repos.extend(config.repos.stable.clone());
+                testing_repos.extend(config.repos.updates.clone());
+                testing_repos.extend(config.repos.testing.clone());
+
+                vec![
+                    Repos {
+                        repos: stable_repos,
+                        with_testing: false,
+                    },
+                    Repos {
+                        repos: testing_repos,
+                        with_testing: true,
+                    },
+                ]
+            }
+        };
+
+        let mut arches: Vec<Arch> = Vec::new();
+
+        for arch in &release.arches {
+            let mut multi_arch: Option<Vec<String>> = None;
+
+            for arch_config in &config.arches {
+                if &arch_config.name == arch {
+                    multi_arch = Some(arch_config.multiarch.clone());
+                }
+            }
+
+            let multi_arch = match multi_arch {
+                Some(values) => values,
+                None => {
+                    return Err(format!(
+                        "Could not find multiarch configuration for {}/{}.",
+                        &release.name, &arch
+                    ))
+                }
+            };
+
+            arches.push(Arch {
+                name: arch.clone(),
+                multi_arch,
+            });
+        }
+
+        for repo in repos {
+            matrix.push(MatrixEntry {
+                release: release.name.to_string(),
+                arches: arches.clone(),
+                repos: repo.repos,
+                with_testing: repo.with_testing,
+            });
+        }
+    }
+
+    Ok(matrix)
+}

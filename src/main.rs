@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -7,146 +6,10 @@ use log::{error, info};
 use tokio::time::delay_for;
 use warp::Filter;
 
-use repochecker::config::{get_config, Config, ReleaseType};
+use repochecker::config::{get_config, matrix_from_config, Config, MatrixEntry};
 use repochecker::pagure::get_admins;
 use repochecker::repo::{get_repo_closure, BrokenDep};
-
-fn get_data_path() -> PathBuf {
-    let mut path = PathBuf::new();
-    path.push(std::env::current_dir().expect("Unable to determine current directory."));
-    path.push("data/");
-    path
-}
-
-fn get_json_path(release: &str, testing: bool) -> PathBuf {
-    let mut path = get_data_path();
-    if !testing {
-        path.push(format!("{}.json", release));
-    } else {
-        path.push(format!("{}-testing.json", release));
-    }
-
-    path
-}
-
-fn write_json_to_file(path: &PathBuf, broken: &[BrokenDep]) -> Result<(), String> {
-    let json = match serde_json::to_string_pretty(&broken) {
-        Ok(json) => json,
-        Err(_) => {
-            return Err(String::from(
-                "Failed to serialize broken dependencies into JSON.",
-            ))
-        }
-    };
-
-    let data_path = get_data_path();
-
-    if !data_path.exists() {
-        std::fs::create_dir_all(data_path).expect("Failed to create data directory.");
-    }
-
-    if let Err(_) = std::fs::write(&path, json) {
-        error!("Failed to write data to disk: {}", &path.to_string_lossy());
-    }
-
-    Ok(())
-}
-
-#[derive(Debug)]
-struct MatrixEntry {
-    release: String,
-    arches: Vec<Arch>,
-    repos: Vec<String>,
-    with_testing: bool,
-}
-
-#[derive(Clone, Debug)]
-struct Arch {
-    name: String,
-    multi_arch: Vec<String>,
-}
-
-#[derive(Debug)]
-struct Repos {
-    repos: Vec<String>,
-    with_testing: bool,
-}
-
-fn matrix_from_config(config: &Config) -> Result<Vec<MatrixEntry>, String> {
-    let mut matrix: Vec<MatrixEntry> = Vec::new();
-
-    for release in &config.releases {
-        let repos = match &release.rtype {
-            ReleaseType::Rawhide => vec![Repos {
-                repos: config.repos.rawhide.clone(),
-                with_testing: false,
-            }],
-            ReleaseType::PreRelease => vec![Repos {
-                repos: config.repos.stable.clone(),
-                with_testing: false,
-            }],
-            ReleaseType::Stable => {
-                let mut stable_repos = Vec::new();
-                stable_repos.extend(config.repos.stable.clone());
-                stable_repos.extend(config.repos.updates.clone());
-
-                let mut testing_repos = Vec::new();
-                testing_repos.extend(config.repos.stable.clone());
-                testing_repos.extend(config.repos.updates.clone());
-                testing_repos.extend(config.repos.testing.clone());
-
-                vec![
-                    Repos {
-                        repos: stable_repos,
-                        with_testing: false,
-                    },
-                    Repos {
-                        repos: testing_repos,
-                        with_testing: true,
-                    },
-                ]
-            }
-        };
-
-        let mut arches: Vec<Arch> = Vec::new();
-
-        for arch in &release.arches {
-            let mut multi_arch: Option<Vec<String>> = None;
-
-            for arch_config in &config.arches {
-                if &arch_config.name == arch {
-                    multi_arch = Some(arch_config.multiarch.clone());
-                }
-            }
-
-            let multi_arch = match multi_arch {
-                Some(values) => values,
-                None => {
-                    return Err(format!(
-                        "Could not find multiarch configuration for {}/{}.",
-                        &release.name, &arch
-                    ))
-                }
-            };
-
-            arches.push(Arch {
-                name: arch.clone(),
-                multi_arch,
-            });
-        }
-
-        for repo in repos {
-            matrix.push(MatrixEntry {
-                release: release.name.to_string(),
-                arches: arches.clone(),
-                repos: repo.repos,
-                with_testing: repo.with_testing,
-            });
-        }
-    }
-
-    Ok(matrix)
-}
+use repochecker::utils::{get_json_path, read_json_from_file, write_json_to_file};
 
 struct State {
     config: Config,
@@ -187,11 +50,28 @@ async fn watcher(state: GlobalState) {
 }
 
 async fn worker(state: GlobalState, entry: MatrixEntry) {
-    if !entry.with_testing {
-        info!("Generating data for {}", &entry.release);
-    } else {
-        info!("Generating data for {} (testing)", &entry.release);
+    let suffix = if !entry.with_testing { "" } else { "-testing" };
+    let pretty = format!("{}{}", &entry.release, suffix);
+
+    let json_path = get_json_path(&entry.release, entry.with_testing);
+
+    // populate data with cached values from file, if available
+    let cached = read_json_from_file(&json_path);
+    if let Ok(values) = cached {
+        info!(
+            "Reusing cached data for {} until fresh data is available.",
+            &pretty
+        );
+
+        let mut guard = state.lock().expect("Found a poisoned mutex.");
+        let state = &mut *guard;
+
+        state
+            .values
+            .insert(format!("{}{}", &entry.release, suffix), values);
     };
+
+    info!("Generating data for {}", &pretty);
 
     let mut arches: Vec<String> = Vec::new();
     let mut multi_arch: HashMap<String, Vec<String>> = HashMap::new();
@@ -216,8 +96,6 @@ async fn worker(state: GlobalState, entry: MatrixEntry) {
         }
     };
 
-    let json_path = get_json_path(&entry.release, entry.with_testing);
-
     if write_json_to_file(&json_path, &broken).is_err() {
         error!("Failed to write results to disk in JSON format.");
     };
@@ -235,6 +113,8 @@ async fn worker(state: GlobalState, entry: MatrixEntry) {
             broken,
         );
     }
+
+    info!("Generated data for {}.", &pretty);
 }
 
 async fn serve(state: GlobalState) {
@@ -254,9 +134,16 @@ async fn serve(state: GlobalState) {
         }
     });
 
-    info!("Serving at http://localhost:3030 ...");
+    let error = warp::any().map(|| {
+        warp::http::Response::builder()
+            .status(404)
+            .body(String::from("This page does not exist."))
+            .unwrap()
+    });
 
-    warp::serve(data).run(([127, 0, 0, 1], 3030)).await;
+    let server = data.or(error);
+
+    warp::serve(server).run(([127, 0, 0, 1], 3030)).await;
 }
 
 #[tokio::main]
@@ -277,7 +164,7 @@ async fn main() -> Result<(), String> {
 
         let config = {
             let guard = state.lock().expect("Found a poisoned mutex.");
-            (&*guard).config.clone()
+            guard.config.clone()
         };
 
         let matrix = matrix_from_config(&config)?;
@@ -290,9 +177,11 @@ async fn main() -> Result<(), String> {
             handle.await.map_err(|error| error.to_string())?;
         }
 
-        info!("Finished generating data. Refreshing in 12 hours.");
+        let wait = 6;
 
-        tokio::spawn(delay_for(Duration::from_secs(60 * 60 * 12)))
+        info!("Finished generating data. Refreshing in {} hours.", wait);
+
+        tokio::spawn(delay_for(Duration::from_secs(60 * 60 * wait)))
             .await
             .map_err(|error| error.to_string())?;
     }
