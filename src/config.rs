@@ -63,6 +63,7 @@ pub struct MatrixEntry {
     pub release: String,
     pub arches: Vec<Arch>,
     pub repos: Vec<String>,
+    pub check: Vec<String>,
     pub with_testing: bool,
 }
 
@@ -78,6 +79,7 @@ pub fn matrix_from_config(config: &Config) -> Result<Vec<MatrixEntry>, String> {
     #[derive(Debug)]
     struct Repos {
         repos: Vec<String>,
+        check: Vec<String>,
         with_testing: bool,
     }
 
@@ -85,10 +87,12 @@ pub fn matrix_from_config(config: &Config) -> Result<Vec<MatrixEntry>, String> {
         let repos = match &release.rtype {
             ReleaseType::Rawhide => vec![Repos {
                 repos: config.repos.rawhide.clone(),
+                check: config.repos.rawhide.clone(),
                 with_testing: false,
             }],
             ReleaseType::PreRelease => vec![Repos {
                 repos: config.repos.stable.clone(),
+                check: config.repos.stable.clone(),
                 with_testing: false,
             }],
             ReleaseType::Stable => {
@@ -103,11 +107,13 @@ pub fn matrix_from_config(config: &Config) -> Result<Vec<MatrixEntry>, String> {
 
                 vec![
                     Repos {
-                        repos: stable_repos,
+                        repos: stable_repos.clone(),
+                        check: stable_repos.clone(),
                         with_testing: false,
                     },
                     Repos {
                         repos: testing_repos,
+                        check: config.repos.testing.clone(),
                         with_testing: true,
                     },
                 ]
@@ -146,6 +152,7 @@ pub fn matrix_from_config(config: &Config) -> Result<Vec<MatrixEntry>, String> {
                 release: release.name.to_string(),
                 arches: arches.clone(),
                 repos: repo.repos,
+                check: repo.check,
                 with_testing: repo.with_testing,
             });
         }

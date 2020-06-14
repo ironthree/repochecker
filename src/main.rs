@@ -1,3 +1,5 @@
+#![warn(clippy::unwrap_used)]
+
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -82,7 +84,14 @@ async fn worker(state: GlobalState, entry: MatrixEntry) {
         state.admins.clone()
     };
 
-    let broken = match get_repo_closure(&entry.release, &arches, &multi_arch, &entry.repos, &admins) {
+    let broken = match get_repo_closure(
+        &entry.release,
+        &arches,
+        &multi_arch,
+        &entry.repos,
+        &entry.check,
+        &admins,
+    ) {
         Ok(broken) => broken,
         Err(error) => {
             error!("Failed to generate repoclosure: {}", error);
@@ -115,12 +124,12 @@ async fn serve(state: GlobalState) {
         match state.values.get(&release) {
             Some(values) => warp::http::Response::builder()
                 .header("Content-Type", "application/json")
-                .body(serde_json::to_string_pretty(values).unwrap())
-                .unwrap(),
+                .body(serde_json::to_string_pretty(values).expect("Failed to serialize into JSON."))
+                .expect("Failed to construct data response."),
             None => warp::http::Response::builder()
                 .status(404)
                 .body(String::from("This page does not exist."))
-                .unwrap(),
+                .expect("Failed to construct data 404 response."),
         }
     });
 
@@ -128,7 +137,7 @@ async fn serve(state: GlobalState) {
         warp::http::Response::builder()
             .status(404)
             .body(String::from("This page does not exist."))
-            .unwrap()
+            .expect("Failed to construct generic 404 response.")
     });
 
     let server = data.or(error);

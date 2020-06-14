@@ -189,11 +189,12 @@ pub struct BrokenDep {
     pub admin: String,
 }
 
-fn get_repo_closure_arched(
+fn get_repo_closure_arched_repo(
     release: &str,
     arch: &str,
     multi_arch: &[String],
     repos: &[String],
+    check: &str,
     admins: &HashMap<String, String>,
 ) -> Result<Vec<BrokenDep>, String> {
     let path = get_cache_path(release, arch)?;
@@ -223,6 +224,9 @@ fn get_repo_closure_arched(
         dnf.arg("--arch");
         dnf.arg(multi);
     }
+
+    dnf.arg("--check");
+    dnf.arg(check);
 
     debug!("running dnf command: {:#?}", &dnf);
 
@@ -316,22 +320,39 @@ fn get_repo_closure_arched(
     Ok(broken_deps)
 }
 
+fn get_repo_closure_arched(
+    release: &str,
+    arch: &str,
+    multi_arch: &[String],
+    repos: &[String],
+    check: &[String],
+    admins: &HashMap<String, String>,
+) -> Result<Vec<BrokenDep>, String> {
+    let mut all_broken: Vec<BrokenDep> = Vec::new();
+
+    for checked in check {
+        let broken = get_repo_closure_arched_repo(release, arch, multi_arch, repos, checked, admins)?;
+        all_broken.extend(broken);
+    }
+
+    Ok(all_broken)
+}
+
 pub fn get_repo_closure(
     release: &str,
     arches: &[String],
     multi_arch: &HashMap<String, Vec<String>>,
     repos: &[String],
+    check: &[String],
     admins: &HashMap<String, String>,
 ) -> Result<Vec<BrokenDep>, String> {
     let mut all_broken: Vec<BrokenDep> = Vec::new();
 
     for arch in arches {
         make_cache(release, arch, repos)?;
-
         let multi = multi_arch.get(arch).unwrap();
 
-        let broken = get_repo_closure_arched(release, arch, multi, repos, admins)?;
-
+        let broken = get_repo_closure_arched(release, arch, multi, repos, check, admins)?;
         all_broken.extend(broken);
     }
 
