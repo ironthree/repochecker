@@ -1,18 +1,18 @@
 [package]
 name = "repochecker"
-description = "TODO"
+description = "analyse dnf/yum repository data for broken dependencies"
 license = "MIT OR Apache-2.0"
 
 publish = false
 
-version = "0.0.0-dev"
+version = "0.1.0"
 edition = "2018"
 
 authors = ["Fabio Valentini <decathorpe@gmail.com>"]
 readme = "README.md"
 categories = []
 keywords = []
-#repository = ""
+repository = "https://pagure.io/ironthree/repochecker"
 
 [dependencies]
 env_logger = "0.7.1"
