@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use log::{error, info};
 use tokio::time::delay_for;
@@ -180,6 +180,8 @@ async fn main() -> Result<(), String> {
     tokio::spawn(serve(state.clone()));
 
     loop {
+        let start = Instant::now();
+
         let config = {
             let guard = state.lock().expect("Found a poisoned mutex.");
             guard.config.clone()
@@ -198,14 +200,15 @@ async fn main() -> Result<(), String> {
             handle.await.map_err(|error| error.to_string())?;
         }
 
-        // maybe make this configurable?
-        let wait = 6;
+        let interval = config.repochecker.interval;
+        info!("Finished generating data. Refreshing in {} hours.", interval);
 
-        info!("Finished generating data. Refreshing in {} hours.", wait);
+        let stop = Instant::now();
+        let busy = stop - start;
 
-        tokio::spawn(delay_for(Duration::from_secs(60 * 60 * wait)))
-            .await
-            .map_err(|error| error.to_string())?;
+        let wait = Duration::from_secs(interval * 60 * 60) - busy;
+
+        tokio::spawn(delay_for(wait)).await.map_err(|error| error.to_string())?;
 
         if tokio::spawn(watcher(state.clone())).await.is_err() {
             error!("Failed to reload configuration from disk.");

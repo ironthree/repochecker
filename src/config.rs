@@ -4,11 +4,17 @@ use serde::Deserialize;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Config {
+    pub repochecker: RepoCheckerConfig,
     pub repos: RepoConfig,
     #[serde(rename = "arch")]
     pub arches: Vec<ArchConfig>,
     #[serde(rename = "release")]
     pub releases: Vec<ReleaseConfig>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct RepoCheckerConfig {
+    pub interval: u64,
 }
 
 #[derive(Clone, Debug, Deserialize)]

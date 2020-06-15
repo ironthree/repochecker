@@ -1,12 +1,44 @@
-[repos]
-stable = ["fedora", "fedora-source"]
-updates = ["updates", "updates-source"]
-testing = ["updates-testing", "updates-testing-source"]
-rawhide = ["rawhide", "rawhide-source"]
+[repochecker]
+# refresh interval for repository data and package maintainers
+interval = 4
 
+[[release]]
+# official name / releasever
+name = "rawhide"
+# repository configuration
+type = "rawhide"
+# available architectures
+arches = ["x86_64", "aarch64", "armv7hl", "ppc64le", "s390x"]
+
+[[release]]
+# official name / releasever
+name = "32"
+# repository configuration
+type = "stable"
+# available architectures
+arches = ["x86_64", "aarch64", "armv7hl", "ppc64le", "s390x"]
+
+[[release]]
+# official name / releasever
+name = "31"
+# repository configuration
+type = "stable"
+# available architectures
+arches = ["x86_64", "aarch64", "armv7hl", "ppc64le", "s390x"]
+
+[repos]
+# stable releases + prereleases
+stable = ["fedora", "fedora-source"]
+# stable release updates
+updates = ["updates", "updates-source"]
+# stable release and prerelease testing updates
+testing = ["updates-testing", "updates-testing-source"]
+# rawhide repositories
+rawhide = ["rawhide", "rawhide-source"]
 
 [[arch]]
 name = "x86_64"
+# x86_64 is the only real "multiarch" architecture (with i686)
 multiarch = ["x86_64", "noarch", "src", "i686"]
 
 [[arch]]
@@ -28,20 +60,4 @@ multiarch = ["ppc64le", "noarch", "src"]
 [[arch]]
 name = "s390x"
 multiarch = ["s390x", "noarch", "src"]
-
-
-[[release]]
-name = "rawhide"
-type = "rawhide"
-arches = ["x86_64", "aarch64", "armv7hl", "ppc64le", "s390x"]
-
-[[release]]
-name = "32"
-type = "stable"
-arches = ["x86_64", "aarch64", "armv7hl", "ppc64le", "s390x"]
-
-[[release]]
-name = "31"
-type = "stable"
-arches = ["x86_64", "aarch64", "armv7hl", "ppc64le", "s390x"]
 
