@@ -9,6 +9,12 @@ in python, is a bit slow, and is written as a one-shot program instead of a serv
 instead of served via an API.
 
 
+## dependencies
+
+The service relies on dnf/yum repositories that are available on the system (though they need not be enabled by
+default), so by default, it requires `dnf`, `dnf-utils`, `fedora-repos`, and `fedora-repos-rawhide`.
+
+
 ## overrides
 
 It's possible to provide overrides / an "allowlist" for filtering out false positives that are not really broken

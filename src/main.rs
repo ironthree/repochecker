@@ -69,16 +69,25 @@ async fn worker(state: GlobalState, entry: MatrixEntry) {
 
     let json_path = get_json_path(&entry.release, entry.with_testing);
 
-    // populate data with cached values from file, if available
-    let cached = read_json_from_file(&json_path);
-    if let Ok(values) = cached {
-        info!("Reusing cached data for {} until fresh data is available.", &pretty);
-
+    let previous = {
         let mut guard = state.lock().expect("Found a poisoned mutex.");
         let state = &mut *guard;
 
-        state.values.insert(format!("{}{}", &entry.release, suffix), values);
+        state.values.contains_key(&pretty)
     };
+
+    if !previous {
+        // populate data with cached values from file, if available
+        let cached = read_json_from_file(&json_path);
+        if let Ok(values) = cached {
+            info!("Reusing cached data for {} until fresh data is available.", &pretty);
+
+            let mut guard = state.lock().expect("Found a poisoned mutex.");
+            let state = &mut *guard;
+
+            state.values.insert(pretty.clone(), values);
+        };
+    }
 
     info!("Generating data for {}", &pretty);
 
@@ -126,10 +135,7 @@ async fn worker(state: GlobalState, entry: MatrixEntry) {
         let mut guard = state.lock().expect("Found a poisoned mutex.");
         let state = &mut *guard;
 
-        state.values.insert(
-            format!("{}{}", &entry.release, if entry.with_testing { "-testing" } else { "" }),
-            broken,
-        );
+        state.values.insert(pretty.clone(), broken);
     }
 
     info!("Generated data for {}.", &pretty);
