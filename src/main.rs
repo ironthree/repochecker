@@ -170,7 +170,7 @@ async fn serve(state: GlobalState) {
     warp::serve(server).run(([127, 0, 0, 1], 3030)).await;
 }
 
-#[tokio::main]
+#[tokio::main(core_threads = 16)]
 async fn main() -> Result<(), String> {
     env_logger::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
