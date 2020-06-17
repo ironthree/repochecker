@@ -8,7 +8,7 @@ use log::{error, info};
 use tokio::time::delay_for;
 use warp::Filter;
 
-use repochecker::config::{get_config, matrix_from_config, Config, MatrixEntry};
+use repochecker::config::{get_config, Config, MatrixEntry};
 use repochecker::overrides::{get_overrides, Overrides};
 use repochecker::pagure::get_admins;
 use repochecker::repo::{get_repo_closure, BrokenDep};
@@ -193,7 +193,7 @@ async fn main() -> Result<(), String> {
             guard.config.clone()
         };
 
-        let matrix = matrix_from_config(&config)?;
+        let matrix = config.to_matrix()?;
 
         // spawn worker threads (.collect() forces the iterator to be evaluated eagerly)
         let handles: Vec<_> = matrix
