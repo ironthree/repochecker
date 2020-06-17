@@ -1,9 +1,12 @@
 use std::collections::{HashMap, HashSet};
 use std::fs::read_to_string;
+use std::path::{Path, PathBuf};
 
-use log::{debug, error};
+use log::{debug, error, info};
 
 use serde::Deserialize;
+
+const OVERRIDES_FILENAME: &str = "overrides.json";
 
 pub type Overrides = HashMap<String, ReleaseOverrides>;
 pub type ReleaseOverrides = HashMap<String, PackageOverrides>;
@@ -16,8 +19,47 @@ pub enum OverrideEntry {
     Packages(Vec<String>),
 }
 
+fn get_overrides_path() -> Result<Box<Path>, String> {
+    let local = {
+        let mut path = std::env::current_dir().map_err(|error| error.to_string())?;
+        path.push(OVERRIDES_FILENAME);
+        path
+    };
+
+    if local.exists() {
+        return Ok(local.into_boxed_path());
+    };
+
+    let site = {
+        let mut path = PathBuf::new();
+        path.push("/etc/repochecker/");
+        path.push(OVERRIDES_FILENAME);
+        path
+    };
+
+    if site.exists() {
+        return Ok(site.into_boxed_path());
+    }
+
+    let default = {
+        let mut path = PathBuf::new();
+        path.push("/usr/share/repochecker/");
+        path.push(OVERRIDES_FILENAME);
+        path
+    };
+
+    if default.exists() {
+        return Ok(default.into_boxed_path());
+    }
+
+    Err(String::from("No overrides file was found."))
+}
+
 pub fn get_overrides() -> Result<Overrides, String> {
-    let path = "overrides.json";
+    let path = get_overrides_path()?;
+
+    info!("Using overrides file: {}", path.to_string_lossy());
+
     let contents = match read_to_string(path) {
         Ok(string) => string,
         Err(error) => return Err(error.to_string()),
