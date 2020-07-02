@@ -48,7 +48,8 @@ fn make_cache(release: &str, arch: &str, repos: &[String]) -> Result<(), String>
     let output = dnf.output().map_err(|error| error.to_string())?;
 
     if !output.status.success() {
-        debug!("dnf makecache exited with an error code:");
+        debug!("dnf makecache for {} / {} exited with an error code:", release, arch);
+
         debug!(
             "{}",
             match String::from_utf8(output.stdout) {
@@ -56,6 +57,7 @@ fn make_cache(release: &str, arch: &str, repos: &[String]) -> Result<(), String>
                 Err(error) => format!("Failed to decode dnf output: {}", error.to_string()),
             }
         );
+
         debug!(
             "{}",
             match String::from_utf8(output.stderr) {
@@ -63,7 +65,11 @@ fn make_cache(release: &str, arch: &str, repos: &[String]) -> Result<(), String>
                 Err(error) => format!("Failed to decode dnf output: {}", error.to_string()),
             }
         );
-        return Err(String::from("dnf makecache exited with an error code."));
+
+        return Err(format!(
+            "dnf makecache for {} / {} exited with an error code.",
+            release, arch
+        ));
     };
 
     Ok(())

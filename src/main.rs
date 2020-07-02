@@ -1,7 +1,7 @@
 #![warn(clippy::unwrap_used)]
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
 use log::{error, info};
@@ -32,12 +32,12 @@ impl State {
     }
 }
 
-type GlobalState = Arc<Mutex<State>>;
+type GlobalState = Arc<RwLock<State>>;
 
 async fn watcher(state: GlobalState) {
     match get_config() {
         Ok(config) => {
-            let mut guard = state.lock().expect("Found a poisoned mutex.");
+            let mut guard = state.write().expect("Found a poisoned lock.");
             let mut state = &mut *guard;
             state.config = config;
         },
@@ -46,7 +46,7 @@ async fn watcher(state: GlobalState) {
 
     match get_overrides() {
         Ok(overrides) => {
-            let mut guard = state.lock().expect("Found a poisoned mutex.");
+            let mut guard = state.write().expect("Found a poisoned lock.");
             let mut state = &mut *guard;
             state.overrides = overrides;
         },
@@ -55,7 +55,7 @@ async fn watcher(state: GlobalState) {
 
     match get_admins(15).await {
         Ok(admins) => {
-            let mut guard = state.lock().expect("Found a poisoned mutex.");
+            let mut guard = state.write().expect("Found a poisoned lock.");
             let mut state = &mut *guard;
             state.admins = admins;
         },
@@ -70,8 +70,8 @@ async fn worker(state: GlobalState, entry: MatrixEntry) {
     let json_path = get_json_path(&entry.release, entry.with_testing);
 
     let previous = {
-        let mut guard = state.lock().expect("Found a poisoned mutex.");
-        let state = &mut *guard;
+        let guard = state.read().expect("Found a poisoned lock.");
+        let state = &*guard;
 
         state.values.contains_key(&pretty)
     };
@@ -82,7 +82,7 @@ async fn worker(state: GlobalState, entry: MatrixEntry) {
         if let Ok(values) = cached {
             info!("Reusing cached data for {} until fresh data is available.", &pretty);
 
-            let mut guard = state.lock().expect("Found a poisoned mutex.");
+            let mut guard = state.write().expect("Found a poisoned lock.");
             let state = &mut *guard;
 
             state.values.insert(pretty.clone(), values);
@@ -100,13 +100,13 @@ async fn worker(state: GlobalState, entry: MatrixEntry) {
     }
 
     let overrides = {
-        let guard = state.lock().expect("Found a poisoned mutex.");
+        let guard = state.read().expect("Found a poisoned lock.");
         let state = &*guard;
         state.overrides.clone()
     };
 
     let admins = {
-        let guard = state.lock().expect("Found a poisoned mutex.");
+        let guard = state.read().expect("Found a poisoned lock.");
         let state = &*guard;
         state.admins.clone()
     };
@@ -132,7 +132,7 @@ async fn worker(state: GlobalState, entry: MatrixEntry) {
     };
 
     {
-        let mut guard = state.lock().expect("Found a poisoned mutex.");
+        let mut guard = state.write().expect("Found a poisoned lock.");
         let state = &mut *guard;
 
         state.values.insert(pretty.clone(), broken);
@@ -143,7 +143,7 @@ async fn worker(state: GlobalState, entry: MatrixEntry) {
 
 async fn serve(state: GlobalState) {
     let data = warp::path!("data" / String).map(move |release| {
-        let guard = state.lock().expect("Found a poisoned mutex.");
+        let guard = state.read().expect("Found a poisoned lock.");
         let state = &*guard;
 
         match state.values.get(&release) {
@@ -181,7 +181,7 @@ async fn main() -> Result<(), String> {
         .await
         .map_err(|error| error.to_string())??;
 
-    let state: GlobalState = Arc::new(Mutex::new(State::init(config, overrides, admins)));
+    let state: GlobalState = Arc::new(RwLock::new(State::init(config, overrides, admins)));
 
     tokio::spawn(serve(state.clone()));
 
@@ -189,7 +189,7 @@ async fn main() -> Result<(), String> {
         let start = Instant::now();
 
         let config = {
-            let guard = state.lock().expect("Found a poisoned mutex.");
+            let guard = state.read().expect("Found a poisoned lock.");
             guard.config.clone()
         };
 
