@@ -9,9 +9,10 @@ use tokio::time::delay_for;
 use warp::Filter;
 
 use repochecker::config::{get_config, Config, MatrixEntry};
+use repochecker::data::BrokenDep;
 use repochecker::overrides::{get_overrides, Overrides};
 use repochecker::pagure::get_admins;
-use repochecker::repo::{get_repo_closure, BrokenDep};
+use repochecker::repo::get_repo_closure;
 use repochecker::utils::{get_json_path, read_json_from_file, write_json_to_file};
 
 struct State {

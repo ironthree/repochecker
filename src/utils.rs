@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::repo::BrokenDep;
+use crate::data::BrokenDep;
 
 fn get_data_path() -> PathBuf {
     let mut path = PathBuf::new();

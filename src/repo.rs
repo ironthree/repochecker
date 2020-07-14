@@ -3,21 +3,10 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use log::debug;
-use log::error;
-use serde::{Deserialize, Serialize};
 
+use crate::data::{BrokenDep, Package};
 use crate::overrides::{is_overridden, Overrides};
-use crate::parse::parse_nevra;
-
-#[derive(Debug)]
-struct Package {
-    name: String,
-    source_name: String,
-    epoch: i32,
-    version: String,
-    release: String,
-    arch: String,
-}
+use crate::parse::{parse_repoclosure, parse_repoquery};
 
 fn get_cache_path(release: &str, arch: &str) -> Result<PathBuf, String> {
     let mut path = PathBuf::new();
@@ -133,40 +122,7 @@ fn get_repo_contents(release: &str, arch: &str, repos: &[String]) -> Result<Vec<
         .trim()
         .to_string();
 
-    let lines = string.split('\n');
-
-    let mut packages: Vec<Package> = Vec::new();
-    for line in lines {
-        let mut split = line.split(' ');
-
-        // match only exactly 6 components
-        match (
-            split.next(),
-            split.next(),
-            split.next(),
-            split.next(),
-            split.next(),
-            split.next(),
-            split.next(),
-        ) {
-            (Some(name), Some(source), Some(epoch), Some(version), Some(release), Some(arch), None) => {
-                packages.push(Package {
-                    name: name.to_string(),
-                    source_name: source.to_string(),
-                    epoch: match epoch.parse() {
-                        Ok(value) => value,
-                        Err(error) => return Err(format!("Failed to parse Epoch value: {}", error)),
-                    },
-                    version: version.to_string(),
-                    release: release.to_string(),
-                    arch: arch.to_string(),
-                })
-            },
-            _ => return Err(format!("Failed to parse line: {}", line)),
-        };
-    }
-
-    Ok(packages)
+    parse_repoquery(&string)
 }
 
 fn get_source_map(contents: &[Package]) -> HashMap<&str, &str> {
@@ -181,20 +137,6 @@ fn get_source_map(contents: &[Package]) -> HashMap<&str, &str> {
     }
 
     map
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct BrokenDep {
-    pub package: String,
-    pub epoch: String,
-    pub version: String,
-    pub release: String,
-    pub arch: String,
-    pub repo: String,
-    pub repo_arch: String,
-    pub source: String,
-    pub broken: Vec<String>,
-    pub admin: String,
 }
 
 #[allow(clippy::many_single_char_names)]
@@ -244,87 +186,7 @@ fn get_repo_closure_arched_repo(
         .trim()
         .to_string();
 
-    let lines = string.split('\n');
-
-    let mut broken_deps: Vec<BrokenDep> = Vec::new();
-
-    struct State<'a> {
-        nevra: (&'a str, &'a str, &'a str, &'a str, &'a str),
-        repo: &'a str,
-        broken: Vec<&'a str>,
-    };
-
-    let state_to_dep = |state: State| -> Result<BrokenDep, String> {
-        let (n, e, v, r, a) = state.nevra;
-
-        let source = if a == "src" {
-            n
-        } else {
-            match source_map.get(n) {
-                Some(source) => source,
-                None => return Err(format!("Unable to find source package for {}", n)),
-            }
-        };
-
-        let admin = match admins.get(&source.to_string()) {
-            Some(admin) => admin.to_string(),
-            None => {
-                error!("Unable to determine maintainer for {}", &source);
-                String::from("(N/A)")
-            },
-        };
-
-        Ok(BrokenDep {
-            package: n.to_string(),
-            epoch: e.to_string(),
-            version: v.to_string(),
-            release: r.to_string(),
-            arch: a.to_string(),
-            repo_arch: arch.to_string(),
-            repo: state.repo.to_string(),
-            source: source.to_string(),
-            broken: state.broken.iter().map(|s| s.to_string()).collect(),
-            admin,
-        })
-    };
-
-    let mut state: Option<State> = None;
-
-    for line in lines {
-        if line.starts_with("package: ") {
-            if let Some(status) = state {
-                broken_deps.push(state_to_dep(status)?);
-            }
-
-            let mut split = line.split(' ');
-            match (split.next(), split.next(), split.next(), split.next()) {
-                (Some(_), Some(nevra), Some(_), Some(repo)) => {
-                    state = Some(State {
-                        nevra: parse_nevra(nevra)?,
-                        repo,
-                        broken: Vec::new(),
-                    });
-                },
-                _ => return Err(format!("Failed to parse line from repoclosure output: {}", line)),
-            }
-        } else if line.starts_with("  unresolved deps:") {
-            continue;
-        } else if line.starts_with("    ") {
-            match &mut state {
-                Some(state) => state.broken.push(line.trim()),
-                None => return Err(String::from("Unrecognised output from repoclosure.")),
-            };
-        } else {
-            continue;
-        }
-    }
-
-    // this should always be true
-    if let Some(status) = state {
-        broken_deps.push(state_to_dep(status)?);
-    }
-
-    Ok(broken_deps)
+    parse_repoclosure(&string, arch, source_map, admins)
 }
 
 fn get_repo_closure_arched(
