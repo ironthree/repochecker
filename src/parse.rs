@@ -1,7 +1,3 @@
-use std::collections::HashMap;
-
-use log::error;
-
 use crate::data::{BrokenDep, Package};
 
 #[allow(clippy::many_single_char_names)]
@@ -76,12 +72,8 @@ pub(crate) fn parse_repoquery(string: &str) -> Result<Vec<Package>, String> {
     Ok(packages)
 }
 
-pub fn parse_repoclosure(
-    string: &str,
-    arch: &str,
-    source_map: HashMap<&str, &str>,
-    admins: &HashMap<String, String>,
-) -> Result<Vec<BrokenDep>, String> {
+#[allow(clippy::many_single_char_names)]
+pub(crate) fn parse_repoclosure(string: &str) -> Result<Vec<BrokenDep>, String> {
     let lines = string.split('\n');
 
     let mut broken_deps: Vec<BrokenDep> = Vec::new();
@@ -95,34 +87,17 @@ pub fn parse_repoclosure(
     let state_to_dep = |state: State| -> Result<BrokenDep, String> {
         let (n, e, v, r, a) = state.nevra;
 
-        let source = if a == "src" {
-            n
-        } else {
-            match source_map.get(n) {
-                Some(source) => source,
-                None => return Err(format!("Unable to find source package for {}", n)),
-            }
-        };
-
-        let admin = match admins.get(&source.to_string()) {
-            Some(admin) => admin.to_string(),
-            None => {
-                error!("Unable to determine maintainer for {}", &source);
-                String::from("(N/A)")
-            },
-        };
-
         Ok(BrokenDep {
             package: n.to_string(),
             epoch: e.to_string(),
             version: v.to_string(),
             release: r.to_string(),
             arch: a.to_string(),
-            repo_arch: arch.to_string(),
             repo: state.repo.to_string(),
-            source: source.to_string(),
             broken: state.broken.iter().map(|s| s.to_string()).collect(),
-            admin,
+            repo_arch: None,
+            source: None,
+            admin: None,
         })
     };
 

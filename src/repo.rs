@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::process::Command;
 
-use log::debug;
+use log::{debug, error};
 
 use crate::data::{BrokenDep, Package};
 use crate::overrides::{is_overridden, Overrides};
@@ -186,7 +186,32 @@ fn get_repo_closure_arched_repo(
         .trim()
         .to_string();
 
-    parse_repoclosure(&string, arch, source_map, admins)
+    let mut closure = parse_repoclosure(&string)?;
+
+    for item in closure.iter_mut() {
+        let source = if item.arch == "src" {
+            item.package.as_str()
+        } else {
+            match source_map.get(item.package.as_str()) {
+                Some(source) => source,
+                None => return Err(format!("Unable to find source package for {}", &item.package)),
+            }
+        };
+
+        let admin = match admins.get(&source.to_string()) {
+            Some(admin) => admin.to_string(),
+            None => {
+                error!("Unable to determine maintainer for {}", &source);
+                String::from("(N/A)")
+            },
+        };
+
+        item.repo_arch = Some(arch.to_string());
+        item.source = Some(source.to_string());
+        item.admin = Some(admin.to_string());
+    }
+
+    Ok(closure)
 }
 
 fn get_repo_closure_arched(
@@ -266,7 +291,10 @@ pub fn get_repo_closure(
 
         // skip source packages that do not produce any binaries on this architecture,
         // because this means that the current architecture is probably excluded
-        broken.retain(|item| !(item.arch == "src" && arch_excluded.contains(&item.source.as_str())));
+        broken.retain(|item| {
+            !(item.arch == "src"
+                && arch_excluded.contains(&item.source.as_ref().expect("This value can never be None.").as_str()))
+        });
 
         all_broken.extend(broken);
     }
@@ -275,8 +303,15 @@ pub fn get_repo_closure(
         let arch = item.repo_arch.clone();
         let package = item.package.clone();
 
-        item.broken
-            .retain(|broken| !is_overridden(overrides, release, &arch, &package, broken))
+        item.broken.retain(|broken| {
+            !is_overridden(
+                overrides,
+                release,
+                &arch.as_ref().expect("This value can never be None."),
+                &package,
+                broken,
+            )
+        })
     });
 
     all_broken.retain(|item| !item.broken.is_empty());

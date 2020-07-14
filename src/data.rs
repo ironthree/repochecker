@@ -18,8 +18,11 @@ pub struct BrokenDep {
     pub release: String,
     pub arch: String,
     pub repo: String,
-    pub repo_arch: String,
-    pub source: String,
     pub broken: Vec<String>,
-    pub admin: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub repo_arch: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub admin: Option<String>,
 }
