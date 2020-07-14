@@ -139,3 +139,67 @@ pub(crate) fn parse_repoclosure(string: &str) -> Result<Vec<BrokenDep>, String> 
 
     Ok(broken_deps)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::BrokenDep;
+
+    #[test]
+    fn parse_repoclosure() {
+        let output = "\
+package: Java-WebSocket-1.3.8-4.fc31.noarch from fedora
+  unresolved deps:
+    mvn(net.iharder:base64)
+package: anchorman-0.0.1-17.fc32.x86_64 from fedora
+  unresolved deps:
+    gstreamer-plugins-good
+    libgstreamer-0.10.so.0()(64bit)
+package: asterisk-ices-17.3.0-1.fc32.x86_64 from fedora
+  unresolved deps:
+    ices";
+
+        let expected = vec![
+            BrokenDep {
+                package: String::from("Java-WebSocket"),
+                epoch: String::from("0"),
+                version: String::from("1.3.8"),
+                release: String::from("4.fc31"),
+                arch: String::from("noarch"),
+                repo: String::from("fedora"),
+                broken: vec![String::from("mvn(net.iharder:base64)")],
+                repo_arch: None,
+                source: None,
+                admin: None,
+            },
+            BrokenDep {
+                package: String::from("anchorman"),
+                epoch: String::from("0"),
+                version: String::from("0.0.1"),
+                release: String::from("17.fc32"),
+                arch: String::from("x86_64"),
+                repo: String::from("fedora"),
+                broken: vec![
+                    String::from("gstreamer-plugins-good"),
+                    String::from("libgstreamer-0.10.so.0()(64bit)"),
+                ],
+                repo_arch: None,
+                source: None,
+                admin: None,
+            },
+            BrokenDep {
+                package: String::from("asterisk-ices"),
+                epoch: String::from("0"),
+                version: String::from("17.3.0"),
+                release: String::from("1.fc32"),
+                arch: String::from("x86_64"),
+                repo: String::from("fedora"),
+                broken: vec![String::from("ices")],
+                repo_arch: None,
+                source: None,
+                admin: None,
+            },
+        ];
+
+        assert_eq!(super::parse_repoclosure(output).unwrap(), expected);
+    }
+}

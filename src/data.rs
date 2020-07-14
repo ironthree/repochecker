@@ -10,7 +10,7 @@ pub struct Package {
     pub arch: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub struct BrokenDep {
     pub package: String,
     pub epoch: String,
