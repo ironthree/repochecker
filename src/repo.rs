@@ -4,7 +4,7 @@ use std::process::Command;
 
 use log::{debug, error};
 
-use crate::data::{BrokenDep, Package};
+use crate::data::{BrokenItem, Package};
 use crate::overrides::{is_overridden, Overrides};
 use crate::parse::{parse_repoclosure, parse_repoquery};
 
@@ -147,7 +147,7 @@ fn get_repo_closure_arched_repo(
     repos: &[String],
     check: &str,
     admins: &HashMap<String, String>,
-) -> Result<Vec<BrokenDep>, String> {
+) -> Result<Vec<BrokenItem>, String> {
     let path = get_cache_path(release, arch)?;
 
     if !path.exists() || !path.is_dir() {
@@ -186,9 +186,10 @@ fn get_repo_closure_arched_repo(
         .trim()
         .to_string();
 
-    let mut closure = parse_repoclosure(&string)?;
+    let closure = parse_repoclosure(&string)?;
 
-    for item in closure.iter_mut() {
+    let mut broken_deps: Vec<BrokenItem> = Vec::new();
+    for item in closure {
         let source = if item.arch == "src" {
             item.package.as_str()
         } else {
@@ -206,12 +207,23 @@ fn get_repo_closure_arched_repo(
             },
         };
 
-        item.repo_arch = Some(arch.to_string());
-        item.source = Some(source.to_string());
-        item.admin = Some(admin.to_string());
+        let broken_dep = BrokenItem {
+            source: source.to_string(),
+            package: item.package,
+            epoch: item.epoch,
+            version: item.version,
+            release: item.release,
+            arch: item.arch,
+            admin,
+            repo: item.repo,
+            repo_arch: arch.to_string(),
+            broken: item.broken,
+        };
+
+        broken_deps.push(broken_dep);
     }
 
-    Ok(closure)
+    Ok(broken_deps)
 }
 
 fn get_repo_closure_arched(
@@ -221,8 +233,8 @@ fn get_repo_closure_arched(
     repos: &[String],
     check: &[String],
     admins: &HashMap<String, String>,
-) -> Result<Vec<BrokenDep>, String> {
-    let mut all_broken: Vec<BrokenDep> = Vec::new();
+) -> Result<Vec<BrokenItem>, String> {
+    let mut all_broken: Vec<BrokenItem> = Vec::new();
 
     for checked in check {
         let broken = get_repo_closure_arched_repo(release, arch, multi_arch, repos, checked, admins)?;
@@ -240,7 +252,7 @@ pub fn get_repo_closure(
     check: &[String],
     overrides: &Overrides,
     admins: &HashMap<String, String>,
-) -> Result<Vec<BrokenDep>, String> {
+) -> Result<Vec<BrokenItem>, String> {
     // check which source packages do not produce any binary packages on a given architecture
     // (emulates detection of ExcludeArch / ExclusiveArch, which cannot be queried directly)
     let mut all_packages: HashSet<String> = HashSet::new();
@@ -280,7 +292,7 @@ pub fn get_repo_closure(
         excluded.insert(arch, arch_excluded);
     }
 
-    let mut all_broken: Vec<BrokenDep> = Vec::new();
+    let mut all_broken: Vec<BrokenItem> = Vec::new();
     for arch in arches {
         make_cache(release, arch, repos)?;
 
@@ -291,10 +303,7 @@ pub fn get_repo_closure(
 
         // skip source packages that do not produce any binaries on this architecture,
         // because this means that the current architecture is probably excluded
-        broken.retain(|item| {
-            !(item.arch == "src"
-                && arch_excluded.contains(&item.source.as_ref().expect("This value can never be None.").as_str()))
-        });
+        broken.retain(|item| !(item.arch == "src" && arch_excluded.contains(&item.source.as_str())));
 
         all_broken.extend(broken);
     }
@@ -303,15 +312,8 @@ pub fn get_repo_closure(
         let arch = item.repo_arch.clone();
         let package = item.package.clone();
 
-        item.broken.retain(|broken| {
-            !is_overridden(
-                overrides,
-                release,
-                &arch.as_ref().expect("This value can never be None."),
-                &package,
-                broken,
-            )
-        })
+        item.broken
+            .retain(|broken| !is_overridden(overrides, release, &arch, &package, broken))
     });
 
     all_broken.retain(|item| !item.broken.is_empty());

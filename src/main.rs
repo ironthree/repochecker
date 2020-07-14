@@ -9,7 +9,7 @@ use tokio::time::delay_for;
 use warp::Filter;
 
 use repochecker::config::{get_config, Config, MatrixEntry};
-use repochecker::data::BrokenDep;
+use repochecker::data::BrokenItem;
 use repochecker::overrides::{get_overrides, Overrides};
 use repochecker::pagure::get_admins;
 use repochecker::repo::get_repo_closure;
@@ -19,7 +19,7 @@ struct State {
     config: Config,
     overrides: Overrides,
     admins: HashMap<String, String>,
-    values: HashMap<String, Vec<BrokenDep>>,
+    values: HashMap<String, Vec<BrokenItem>>,
 }
 
 impl State {

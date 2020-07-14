@@ -1,4 +1,15 @@
-use crate::data::{BrokenDep, Package};
+use crate::data::Package;
+
+#[derive(Debug, PartialEq)]
+pub(crate) struct ClosureItem {
+    pub package: String,
+    pub epoch: String,
+    pub version: String,
+    pub release: String,
+    pub arch: String,
+    pub repo: String,
+    pub broken: Vec<String>,
+}
 
 #[allow(clippy::many_single_char_names)]
 pub fn parse_nevra(nevra: &str) -> Result<(&str, &str, &str, &str, &str), String> {
@@ -73,10 +84,10 @@ pub(crate) fn parse_repoquery(string: &str) -> Result<Vec<Package>, String> {
 }
 
 #[allow(clippy::many_single_char_names)]
-pub(crate) fn parse_repoclosure(string: &str) -> Result<Vec<BrokenDep>, String> {
+pub(crate) fn parse_repoclosure(string: &str) -> Result<Vec<ClosureItem>, String> {
     let lines = string.split('\n');
 
-    let mut broken_deps: Vec<BrokenDep> = Vec::new();
+    let mut closure_items: Vec<ClosureItem> = Vec::new();
 
     struct State<'a> {
         nevra: (&'a str, &'a str, &'a str, &'a str, &'a str),
@@ -84,10 +95,10 @@ pub(crate) fn parse_repoclosure(string: &str) -> Result<Vec<BrokenDep>, String> 
         broken: Vec<&'a str>,
     };
 
-    let state_to_dep = |state: State| -> Result<BrokenDep, String> {
+    let state_to_dep = |state: State| -> Result<ClosureItem, String> {
         let (n, e, v, r, a) = state.nevra;
 
-        Ok(BrokenDep {
+        Ok(ClosureItem {
             package: n.to_string(),
             epoch: e.to_string(),
             version: v.to_string(),
@@ -95,9 +106,6 @@ pub(crate) fn parse_repoclosure(string: &str) -> Result<Vec<BrokenDep>, String> 
             arch: a.to_string(),
             repo: state.repo.to_string(),
             broken: state.broken.iter().map(|s| s.to_string()).collect(),
-            repo_arch: None,
-            source: None,
-            admin: None,
         })
     };
 
@@ -106,7 +114,7 @@ pub(crate) fn parse_repoclosure(string: &str) -> Result<Vec<BrokenDep>, String> 
     for line in lines {
         if line.starts_with("package: ") {
             if let Some(status) = state {
-                broken_deps.push(state_to_dep(status)?);
+                closure_items.push(state_to_dep(status)?);
             }
 
             let mut split = line.split(' ');
@@ -134,15 +142,15 @@ pub(crate) fn parse_repoclosure(string: &str) -> Result<Vec<BrokenDep>, String> 
 
     // this should always be true
     if let Some(status) = state {
-        broken_deps.push(state_to_dep(status)?);
+        closure_items.push(state_to_dep(status)?);
     }
 
-    Ok(broken_deps)
+    Ok(closure_items)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::BrokenDep;
+    use super::ClosureItem;
 
     #[test]
     fn parse_repoclosure() {
@@ -159,7 +167,7 @@ package: asterisk-ices-17.3.0-1.fc32.x86_64 from fedora
     ices";
 
         let expected = vec![
-            BrokenDep {
+            ClosureItem {
                 package: String::from("Java-WebSocket"),
                 epoch: String::from("0"),
                 version: String::from("1.3.8"),
@@ -167,11 +175,8 @@ package: asterisk-ices-17.3.0-1.fc32.x86_64 from fedora
                 arch: String::from("noarch"),
                 repo: String::from("fedora"),
                 broken: vec![String::from("mvn(net.iharder:base64)")],
-                repo_arch: None,
-                source: None,
-                admin: None,
             },
-            BrokenDep {
+            ClosureItem {
                 package: String::from("anchorman"),
                 epoch: String::from("0"),
                 version: String::from("0.0.1"),
@@ -182,11 +187,8 @@ package: asterisk-ices-17.3.0-1.fc32.x86_64 from fedora
                     String::from("gstreamer-plugins-good"),
                     String::from("libgstreamer-0.10.so.0()(64bit)"),
                 ],
-                repo_arch: None,
-                source: None,
-                admin: None,
             },
-            BrokenDep {
+            ClosureItem {
                 package: String::from("asterisk-ices"),
                 epoch: String::from("0"),
                 version: String::from("17.3.0"),
@@ -194,9 +196,6 @@ package: asterisk-ices-17.3.0-1.fc32.x86_64 from fedora
                 arch: String::from("x86_64"),
                 repo: String::from("fedora"),
                 broken: vec![String::from("ices")],
-                repo_arch: None,
-                source: None,
-                admin: None,
             },
         ];
 
