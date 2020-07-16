@@ -5,7 +5,7 @@ license = "MIT OR Apache-2.0"
 
 publish = false
 
-version = "0.1.4"
+version = "0.2.0-dev"
 edition = "2018"
 
 authors = ["Fabio Valentini <decathorpe@gmail.com>"]
@@ -15,6 +15,7 @@ keywords = []
 repository = "https://pagure.io/ironthree/repochecker"
 
 [dependencies]
+chrono = { version = "^0.4", features = ["serde"] }
 env_logger = "0.7.1"
 log = "0.4.8"
 reqwest = "^0.10"
