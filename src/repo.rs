@@ -218,6 +218,7 @@ fn get_repo_closure_arched_repo(
             repo: item.repo,
             repo_arch: arch.to_string(),
             broken: item.broken,
+            since: None,
         };
 
         broken_deps.push(broken_dep);

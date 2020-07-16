@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
@@ -22,4 +23,5 @@ pub struct BrokenItem {
     pub repo: String,
     pub repo_arch: String,
     pub broken: Vec<String>,
+    pub since: Option<DateTime<Utc>>,
 }

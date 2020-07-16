@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
+use chrono::Utc;
 use log::{error, info};
 use tokio::time::delay_for;
 use warp::Filter;
@@ -128,15 +129,41 @@ async fn worker(state: GlobalState, entry: MatrixEntry) {
         },
     };
 
-    if write_json_to_file(&json_path, &broken).is_err() {
-        error!("Failed to write results to disk in JSON format.");
-    };
-
     {
         let mut guard = state.write().expect("Found a poisoned lock.");
         let state = &mut *guard;
 
-        state.values.insert(pretty.clone(), broken);
+        let old_broken = state.values.remove(&pretty);
+        let mut new_broken = broken;
+
+        // check if packages were already broken and set "since" datetime accordingly
+        if let Some(old_broken) = old_broken {
+            fn matches(old: &BrokenItem, new: &BrokenItem) -> bool {
+                old.package == new.package && old.repo == new.repo && old.repo_arch == new.repo_arch
+            };
+
+            for new in new_broken.iter_mut() {
+                for old in old_broken.iter() {
+                    if matches(old, new) {
+                        // use old "since" time in case of a match
+                        new.since = old.since;
+                        // there can only be one match per package+repo+repo_arch combination
+                        break;
+                    }
+                }
+
+                // if no old "since" time was found or the entry is new, set "since" to "now"
+                if new.since.is_none() {
+                    new.since = Some(Utc::now());
+                }
+            }
+        }
+
+        if write_json_to_file(&json_path, &new_broken).is_err() {
+            error!("Failed to write results to disk in JSON format.");
+        };
+
+        state.values.insert(pretty.clone(), new_broken);
     }
 
     info!("Generated data for {}.", &pretty);
