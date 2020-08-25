@@ -12,6 +12,14 @@ arches = ["x86_64", "aarch64", "armv7hl", "ppc64le", "s390x"]
 
 [[release]]
 # official name / releasever
+name = "33"
+# repository configuration
+type = "stable"
+# available architectures
+arches = ["x86_64", "aarch64", "armv7hl", "ppc64le", "s390x"]
+
+[[release]]
+# official name / releasever
 name = "32"
 # repository configuration
 type = "stable"
