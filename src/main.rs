@@ -20,7 +20,7 @@ struct State {
     config: Config,
     overrides: Overrides,
     admins: HashMap<String, String>,
-    values: HashMap<String, Vec<BrokenItem>>,
+    values: HashMap<String, Arc<Vec<BrokenItem>>>,
 }
 
 impl State {
@@ -87,7 +87,7 @@ async fn worker(state: GlobalState, entry: MatrixEntry) {
             let mut guard = state.write().expect("Found a poisoned lock.");
             let state = &mut *guard;
 
-            state.values.insert(pretty.clone(), values);
+            state.values.insert(pretty.clone(), Arc::new(values));
         };
     }
 
@@ -163,7 +163,7 @@ async fn worker(state: GlobalState, entry: MatrixEntry) {
             error!("Failed to write results to disk in JSON format.");
         };
 
-        state.values.insert(pretty.clone(), new_broken);
+        state.values.insert(pretty.clone(), Arc::new(new_broken));
     }
 
     info!("Generated data for {}.", &pretty);
@@ -171,17 +171,21 @@ async fn worker(state: GlobalState, entry: MatrixEntry) {
 
 async fn serve(state: GlobalState) {
     let data = warp::path!("data" / String).map(move |release| {
-        let guard = state.read().expect("Found a poisoned lock.");
-        let state = &*guard;
+        let values = {
+            let guard = state.read().expect("Found a poisoned lock.");
+            let state = &*guard;
 
-        match state.values.get(&release) {
+            state.values.get(&release).map(|o| o.clone())
+        };
+
+        match values {
             Some(values) => warp::http::Response::builder()
                 .header("Content-Type", "application/json")
-                .body(serde_json::to_string_pretty(values).expect("Failed to serialize into JSON."))
+                .body(serde_json::to_string_pretty(&*values).expect("Failed to serialize into JSON."))
                 .expect("Failed to construct data response."),
             None => warp::http::Response::builder()
                 .status(404)
-                .body(String::from("This page does not exist."))
+                .body(String::from("This release does not exist."))
                 .expect("Failed to construct data 404 response."),
         }
     });
@@ -189,7 +193,9 @@ async fn serve(state: GlobalState) {
     let error = warp::any().map(|| {
         warp::http::Response::builder()
             .status(404)
-            .body(String::from("This page does not exist."))
+            .body(String::from(
+                "This page does not exist. Navigate to /data/{release} instead.",
+            ))
             .expect("Failed to construct generic 404 response.")
     });
 
