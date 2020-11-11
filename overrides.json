@@ -96,6 +96,7 @@
         "konqueror",
         "kontact",
         "libquentier",
+        "psi-plus",
         "quentier"
       ],
       "cmake(Qt5WebEngineWidgets)": [
@@ -172,6 +173,7 @@
         "konqueror",
         "kontact",
         "libquentier",
+        "psi-plus",
         "quentier"
       ],
       "cmake(Qt5WebEngineWidgets)": [
