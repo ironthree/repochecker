@@ -1,5 +1,13 @@
 #![warn(clippy::unwrap_used)]
 
+mod config;
+mod data;
+mod overrides;
+mod pagure;
+mod parse;
+mod repo;
+mod utils;
+
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
@@ -9,12 +17,12 @@ use log::{error, info};
 use tokio::time::delay_for;
 use warp::Filter;
 
-use repochecker::config::{get_config, Config, MatrixEntry};
-use repochecker::data::BrokenItem;
-use repochecker::overrides::{get_overrides, Overrides};
-use repochecker::pagure::get_admins;
-use repochecker::repo::get_repo_closure;
-use repochecker::utils::{get_json_path, read_json_from_file, write_json_to_file};
+use config::{get_config, Config, MatrixEntry};
+use data::BrokenItem;
+use overrides::{get_overrides, Overrides};
+use pagure::get_admins;
+use repo::get_repo_closure;
+use utils::{get_json_path, read_json_from_file, write_json_to_file};
 
 struct State {
     config: Config,
@@ -170,12 +178,14 @@ async fn worker(state: GlobalState, entry: MatrixEntry) {
 }
 
 async fn serve(state: GlobalState) {
+    // TODO: index at /data/ that lists currently known releases
+
     let data = warp::path!("data" / String).map(move |release| {
         let values = {
             let guard = state.read().expect("Found a poisoned lock.");
             let state = &*guard;
 
-            state.values.get(&release).map(|o| o.clone())
+            state.values.get(&release).cloned()
         };
 
         match values {
@@ -206,7 +216,7 @@ async fn serve(state: GlobalState) {
 
 #[tokio::main(core_threads = 16)]
 async fn main() -> Result<(), String> {
-    env_logger::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     let config = get_config()?;
     let overrides = get_overrides()?;
