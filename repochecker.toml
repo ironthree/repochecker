@@ -26,14 +26,6 @@ type = "stable"
 # available architectures
 arches = ["x86_64", "aarch64", "armv7hl", "ppc64le", "s390x"]
 
-[[release]]
-# official name / releasever
-name = "31"
-# repository configuration
-type = "stable"
-# available architectures
-arches = ["x86_64", "aarch64", "armv7hl", "ppc64le", "s390x"]
-
 [repos]
 # stable releases + prereleases
 stable = ["fedora", "fedora-source"]
