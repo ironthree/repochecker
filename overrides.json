@@ -50,6 +50,9 @@
       ]
     },
     "s390x": {
+      "(python3.9dist(img2pdf) < 0.5 with python3.9dist(img2pdf) >= 0.3)": [
+        "ocrmypdf"
+      ],
       "pkgconfig(Qt5WebEngine)": [
         "mscore"
       ]
@@ -273,6 +276,9 @@
       ]
     },
     "s390x": {
+      "(python3.9dist(img2pdf) < 0.5 with python3.9dist(img2pdf) >= 0.3)": [
+        "ocrmypdf"
+      ],
       "pkgconfig(Qt5WebEngine)": [
         "mscore"
       ]
