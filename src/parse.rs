@@ -93,7 +93,7 @@ pub(crate) fn parse_repoclosure(string: &str) -> Result<Vec<ClosureItem>, String
         nevra: (&'a str, &'a str, &'a str, &'a str, &'a str),
         repo: &'a str,
         broken: Vec<&'a str>,
-    };
+    }
 
     let state_to_dep = |state: State| -> Result<ClosureItem, String> {
         let (n, e, v, r, a) = state.nevra;

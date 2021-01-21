@@ -148,7 +148,7 @@ async fn worker(state: GlobalState, entry: MatrixEntry) {
         if let Some(old_broken) = old_broken {
             fn matches(old: &BrokenItem, new: &BrokenItem) -> bool {
                 old.package == new.package && old.repo == new.repo && old.repo_arch == new.repo_arch
-            };
+            }
 
             for new in new_broken.iter_mut() {
                 for old in old_broken.iter() {
