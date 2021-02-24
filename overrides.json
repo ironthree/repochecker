@@ -59,6 +59,26 @@
     },
     "x86_64": {}
   },
+  "34": {
+    "aarch64": {},
+    "all": {},
+    "armv7hl": {},
+    "i686": {},
+    "ppc64le": {
+      "pkgconfig(Qt5WebEngine)": [
+        "mscore"
+      ]
+    },
+    "s390x": {
+      "(python3.9dist(img2pdf) < 0.5 with python3.9dist(img2pdf) >= 0.3)": [
+        "ocrmypdf"
+      ],
+      "pkgconfig(Qt5WebEngine)": [
+        "mscore"
+      ]
+    },
+    "x86_64": {}
+  },
   "all": {
     "aarch64": {
       "java-1.8.0-openjdk-aarch32-devel": [
