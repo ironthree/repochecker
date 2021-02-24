@@ -1,0 +1,12 @@
+[Unit]
+Description=repochecker service
+
+[Service]
+ExecStart=/usr/bin/repochecker
+User=repochecker
+WorkingDirectory=/var/lib/repochecker/
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target
