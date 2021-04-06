@@ -13,14 +13,13 @@ use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
 use log::{error, info};
-use tokio::time::delay_for;
 
 use config::get_config;
 use overrides::get_overrides;
 use pagure::get_admins;
 use server::{GlobalState, State};
 
-#[tokio::main(core_threads = 16)]
+#[tokio::main(worker_threads = 16)]
 async fn main() -> Result<(), String> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
@@ -64,7 +63,7 @@ async fn main() -> Result<(), String> {
 
         let wait = Duration::from_secs(interval * 60 * 60) - busy;
 
-        tokio::spawn(delay_for(wait)).await.map_err(|error| error.to_string())?;
+        tokio::spawn(tokio::time::sleep(wait)).await.map_err(|error| error.to_string())?;
 
         if tokio::spawn(server::watcher(state.clone())).await.is_err() {
             error!("Failed to reload configuration from disk.");
