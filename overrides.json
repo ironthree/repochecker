@@ -218,6 +218,9 @@
       "love": [
         "90-Second-Portraits"
       ],
+      "nut-devel": [
+        "collectd"
+      ],
       "pkgconfig(Qt5WebEngine)": [
         "GoldenCheetah",
         "digikam",
