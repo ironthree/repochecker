@@ -1,38 +1,36 @@
 [repochecker]
-# refresh interval for repository data and package maintainers
+# refresh interval (in hours) for repository data and package maintainers
 interval = 4
 
 [[release]]
-# official name / releasever
 name = "rawhide"
-# repository configuration
 type = "rawhide"
-# available architectures
 arches = ["x86_64", "aarch64", "armv7hl", "ppc64le", "s390x"]
+archived = false
 
 [[release]]
-# official name / releasever
 name = "34"
-# repository configuration
 type = "stable"
-# available architectures
 arches = ["x86_64", "aarch64", "armv7hl", "ppc64le", "s390x"]
+archived = false
 
 [[release]]
-# official name / releasever
 name = "33"
-# repository configuration
 type = "stable"
-# available architectures
 arches = ["x86_64", "aarch64", "armv7hl", "ppc64le", "s390x"]
+archived = false
 
 [[release]]
-# official name / releasever
 name = "32"
-# repository configuration
 type = "stable"
-# available architectures
 arches = ["x86_64", "aarch64", "armv7hl", "ppc64le", "s390x"]
+archived = true
+
+[[release]]
+name = "31"
+type = "stable"
+arches = ["x86_64", "aarch64", "armv7hl", "ppc64le", "s390x"]
+archived = true
 
 [repos]
 # stable releases + prereleases

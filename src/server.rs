@@ -78,12 +78,20 @@ pub(crate) async fn worker(state: GlobalState, entry: MatrixEntry) {
         // populate data with cached values from file, if available
         let cached = read_json_from_file(&json_path);
         if let Ok(values) = cached {
-            info!("Reusing cached data for {} until fresh data is available.", &pretty);
+            if !entry.archived {
+                info!("Reusing cached data for {} until fresh data is available.", &pretty);
+            } else {
+                info!("Reusing archival data for {}.", &pretty);
+            }
 
             let mut guard = state.write().expect("Found a poisoned lock.");
             let state = &mut *guard;
 
             state.values.insert(pretty.clone(), Arc::new(values));
+
+            if entry.archived {
+                return;
+            }
         };
     }
 

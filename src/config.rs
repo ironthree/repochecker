@@ -42,6 +42,7 @@ pub struct ReleaseConfig {
     #[serde(rename = "type")]
     pub rtype: ReleaseType,
     pub arches: Vec<String>,
+    pub archived: bool,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -115,6 +116,7 @@ pub struct MatrixEntry {
     pub repos: Vec<String>,
     pub check: Vec<String>,
     pub with_testing: bool,
+    pub archived: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -205,6 +207,7 @@ impl Config {
                     repos: repo.repos,
                     check: repo.check,
                     with_testing: repo.with_testing,
+                    archived: release.archived,
                 });
             }
         }
