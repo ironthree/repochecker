@@ -1,8 +1,9 @@
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-use std::process::Command;
 
 use log::{debug, error};
+
+use tokio::process::Command;
 
 use crate::data::{BrokenItem, Package};
 use crate::overrides::{is_overridden, Overrides};
@@ -15,7 +16,7 @@ fn get_cache_path(release: &str, arch: &str) -> Result<PathBuf, String> {
     Ok(path)
 }
 
-fn make_cache(release: &str, arch: &str, repos: &[String]) -> Result<(), String> {
+async fn make_cache(release: &str, arch: &str, repos: &[String]) -> Result<(), String> {
     let path = get_cache_path(release, arch)?;
 
     let mut dnf = Command::new("dnf");
@@ -34,7 +35,7 @@ fn make_cache(release: &str, arch: &str, repos: &[String]) -> Result<(), String>
     dnf.arg("--forcearch").arg(arch);
     dnf.arg("makecache").arg("--refresh");
 
-    let output = dnf.output().map_err(|error| error.to_string())?;
+    let output = dnf.output().await.map_err(|error| error.to_string())?;
 
     if !output.status.success() {
         debug!("dnf makecache for {} / {} exited with an error code:", release, arch);
@@ -64,7 +65,7 @@ fn make_cache(release: &str, arch: &str, repos: &[String]) -> Result<(), String>
     Ok(())
 }
 
-fn get_repo_contents(release: &str, arch: &str, repos: &[String]) -> Result<Vec<Package>, String> {
+async fn get_repo_contents(release: &str, arch: &str, repos: &[String]) -> Result<Vec<Package>, String> {
     let path = get_cache_path(release, arch)?;
 
     if !path.exists() {
@@ -96,7 +97,7 @@ fn get_repo_contents(release: &str, arch: &str, repos: &[String]) -> Result<Vec<
         .arg("--queryformat")
         .arg("%{name} %{source_name} %{epoch} %{version} %{release} %{arch}");
 
-    let output = dnf.output().map_err(|error| error.to_string())?;
+    let output = dnf.output().await.map_err(|error| error.to_string())?;
 
     if !output.status.success() {
         debug!("dnf makecache exited with an error code:",);
@@ -140,7 +141,7 @@ fn get_source_map(contents: &[Package]) -> HashMap<&str, &str> {
 }
 
 #[allow(clippy::many_single_char_names)]
-fn get_repo_closure_arched_repo(
+async fn get_repo_closure_arched_repo(
     release: &str,
     arch: &str,
     multi_arch: &[String],
@@ -154,7 +155,7 @@ fn get_repo_closure_arched_repo(
         return Err(String::from("Cache does not exist."));
     };
 
-    let contents = get_repo_contents(release, arch, repos)?;
+    let contents = get_repo_contents(release, arch, repos).await?;
     let source_map = get_source_map(&contents);
 
     let mut dnf = Command::new("dnf");
@@ -179,7 +180,7 @@ fn get_repo_closure_arched_repo(
     dnf.arg("--check");
     dnf.arg(check);
 
-    let output = dnf.output().map_err(|error| error.to_string())?;
+    let output = dnf.output().await.map_err(|error| error.to_string())?;
 
     let string = String::from_utf8(output.stdout)
         .map_err(|error| error.to_string())?
@@ -227,7 +228,7 @@ fn get_repo_closure_arched_repo(
     Ok(broken_deps)
 }
 
-fn get_repo_closure_arched(
+async fn get_repo_closure_arched(
     release: &str,
     arch: &str,
     multi_arch: &[String],
@@ -238,14 +239,14 @@ fn get_repo_closure_arched(
     let mut all_broken: Vec<BrokenItem> = Vec::new();
 
     for checked in check {
-        let broken = get_repo_closure_arched_repo(release, arch, multi_arch, repos, checked, admins)?;
+        let broken = get_repo_closure_arched_repo(release, arch, multi_arch, repos, checked, admins).await?;
         all_broken.extend(broken);
     }
 
     Ok(all_broken)
 }
 
-pub fn get_repo_closure(
+pub async fn get_repo_closure(
     release: &str,
     arches: &[String],
     multi_arch: &HashMap<String, Vec<String>>,
@@ -260,7 +261,7 @@ pub fn get_repo_closure(
     let mut arch_map: HashMap<&str, Vec<String>> = HashMap::new();
 
     for arch in arches {
-        let packages = get_repo_contents(release, arch, repos)?;
+        let packages = get_repo_contents(release, arch, repos).await?;
         let mut built: Vec<String> = Vec::new();
 
         for package in packages {
@@ -295,12 +296,12 @@ pub fn get_repo_closure(
 
     let mut all_broken: Vec<BrokenItem> = Vec::new();
     for arch in arches {
-        make_cache(release, arch, repos)?;
+        make_cache(release, arch, repos).await?;
 
         let multi = multi_arch.get(arch).unwrap();
         let arch_excluded = excluded.get(arch.as_str()).expect("Something went terribly wrong.");
 
-        let mut broken = get_repo_closure_arched(release, arch, multi, repos, check, admins)?;
+        let mut broken = get_repo_closure_arched(release, arch, multi, repos, check, admins).await?;
 
         // skip source packages that do not produce any binaries on this architecture,
         // because this means that the current architecture is probably excluded

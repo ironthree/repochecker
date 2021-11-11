@@ -63,7 +63,9 @@ async fn main() -> Result<(), String> {
 
         let wait = Duration::from_secs(interval * 60 * 60) - busy;
 
-        tokio::spawn(tokio::time::sleep(wait)).await.map_err(|error| error.to_string())?;
+        tokio::spawn(tokio::time::sleep(wait))
+            .await
+            .map_err(|error| error.to_string())?;
 
         if tokio::spawn(server::watcher(state.clone())).await.is_err() {
             error!("Failed to reload configuration from disk.");

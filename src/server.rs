@@ -125,7 +125,9 @@ pub(crate) async fn worker(state: GlobalState, entry: MatrixEntry) {
         &entry.check,
         &overrides,
         &admins,
-    ) {
+    )
+    .await
+    {
         Ok(broken) => broken,
         Err(error) => {
             error!("Failed to generate repoclosure: {}", error);
