@@ -8,7 +8,7 @@ use warp::Filter;
 use crate::config::{get_config, Config, MatrixEntry};
 use crate::data::BrokenItem;
 use crate::overrides::{get_overrides, Overrides};
-use crate::pagure::get_admins;
+use crate::pagure::{get_admins, get_maintainers};
 use crate::repo::get_repo_closure;
 use crate::utils::{get_json_path, read_json_from_file, write_json_to_file};
 
@@ -16,15 +16,22 @@ pub(crate) struct State {
     pub(crate) config: Config,
     pub(crate) overrides: Overrides,
     pub(crate) admins: HashMap<String, String>,
+    pub(crate) maintainers: HashMap<String, Vec<String>>,
     pub(crate) values: HashMap<String, Arc<Vec<BrokenItem>>>,
 }
 
 impl State {
-    pub(crate) fn init(config: Config, overrides: Overrides, admins: HashMap<String, String>) -> State {
+    pub(crate) fn init(
+        config: Config,
+        overrides: Overrides,
+        admins: HashMap<String, String>,
+        maintainers: HashMap<String, Vec<String>>,
+    ) -> State {
         State {
             config,
             overrides,
             admins,
+            maintainers,
             values: HashMap::new(),
         }
     }
@@ -56,6 +63,15 @@ pub(crate) async fn watcher(state: GlobalState) {
             let mut guard = state.write().expect("Found a poisoned lock.");
             let mut state = &mut *guard;
             state.admins = admins;
+        },
+        Err(error) => error!("Failed to read updated package maintainers: {}", error),
+    }
+
+    match get_maintainers(15).await {
+        Ok(maintainers) => {
+            let mut guard = state.write().expect("Found a poisoned lock.");
+            let mut state = &mut *guard;
+            state.maintainers = maintainers;
         },
         Err(error) => error!("Failed to read updated package maintainers: {}", error),
     };
@@ -114,7 +130,14 @@ pub(crate) async fn worker(state: GlobalState, entry: MatrixEntry) {
     let admins = {
         let guard = state.read().expect("Found a poisoned lock.");
         let state = &*guard;
+
         state.admins.clone()
+    };
+
+    let maintainers = {
+        let guard = state.read().expect("Found a poisoned lock.");
+        let state = &*guard;
+        state.maintainers.clone()
     };
 
     let broken = match get_repo_closure(
@@ -125,6 +148,7 @@ pub(crate) async fn worker(state: GlobalState, entry: MatrixEntry) {
         &entry.check,
         &overrides,
         &admins,
+        &maintainers,
     )
     .await
     {

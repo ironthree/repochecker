@@ -148,6 +148,7 @@ async fn get_repo_closure_arched_repo(
     repos: &[String],
     check: &str,
     admins: &HashMap<String, String>,
+    maintainers: &HashMap<String, Vec<String>>,
 ) -> Result<Vec<BrokenItem>, String> {
     let path = get_cache_path(release, arch)?;
 
@@ -200,11 +201,19 @@ async fn get_repo_closure_arched_repo(
             }
         };
 
-        let admin = match admins.get(&source.to_string()) {
+        let admin = match admins.get(source) {
             Some(admin) => admin.to_string(),
             None => {
-                error!("Unable to determine maintainer for {}", &source);
+                error!("Unable to determine main admin for {}", &source);
                 String::from("(N/A)")
+            },
+        };
+
+        let ms = match maintainers.get(source) {
+            Some(ms) => ms.to_owned(),
+            None => {
+                error!("Unable to determine maintainers for {}", &source);
+                Vec::new()
             },
         };
 
@@ -216,6 +225,7 @@ async fn get_repo_closure_arched_repo(
             release: item.release,
             arch: item.arch,
             admin,
+            maintainers: ms,
             repo: item.repo,
             repo_arch: arch.to_string(),
             broken: item.broken,
@@ -235,11 +245,13 @@ async fn get_repo_closure_arched(
     repos: &[String],
     check: &[String],
     admins: &HashMap<String, String>,
+    maintainers: &HashMap<String, Vec<String>>,
 ) -> Result<Vec<BrokenItem>, String> {
     let mut all_broken: Vec<BrokenItem> = Vec::new();
 
     for checked in check {
-        let broken = get_repo_closure_arched_repo(release, arch, multi_arch, repos, checked, admins).await?;
+        let broken =
+            get_repo_closure_arched_repo(release, arch, multi_arch, repos, checked, admins, maintainers).await?;
         all_broken.extend(broken);
     }
 
@@ -254,6 +266,7 @@ pub async fn get_repo_closure(
     check: &[String],
     overrides: &Overrides,
     admins: &HashMap<String, String>,
+    maintainers: &HashMap<String, Vec<String>>,
 ) -> Result<Vec<BrokenItem>, String> {
     // check which source packages do not produce any binary packages on a given architecture
     // (emulates detection of ExcludeArch / ExclusiveArch, which cannot be queried directly)
@@ -301,7 +314,7 @@ pub async fn get_repo_closure(
         let multi = multi_arch.get(arch).unwrap();
         let arch_excluded = excluded.get(arch.as_str()).expect("Something went terribly wrong.");
 
-        let mut broken = get_repo_closure_arched(release, arch, multi, repos, check, admins).await?;
+        let mut broken = get_repo_closure_arched(release, arch, multi, repos, check, admins, maintainers).await?;
 
         // skip source packages that do not produce any binaries on this architecture,
         // because this means that the current architecture is probably excluded

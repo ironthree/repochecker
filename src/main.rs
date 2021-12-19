@@ -16,7 +16,7 @@ use log::{error, info};
 
 use config::get_config;
 use overrides::get_overrides;
-use pagure::get_admins;
+use pagure::{get_admins, get_maintainers};
 use server::{GlobalState, State};
 
 #[tokio::main(worker_threads = 16)]
@@ -30,7 +30,11 @@ async fn main() -> Result<(), String> {
         .await
         .map_err(|error| error.to_string())??;
 
-    let state: GlobalState = Arc::new(RwLock::new(State::init(config, overrides, admins)));
+    let maintainers = tokio::spawn(get_maintainers(15))
+        .await
+        .map_err(|error| error.to_string())??;
+
+    let state: GlobalState = Arc::new(RwLock::new(State::init(config, overrides, admins, maintainers)));
 
     tokio::spawn(server::server(state.clone()));
 

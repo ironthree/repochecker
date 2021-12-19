@@ -20,6 +20,8 @@ pub struct BrokenItem {
     pub release: String,
     pub arch: String,
     pub admin: String,
+    #[serde(default = "Vec::new")]
+    pub maintainers: Vec<String>,
     pub repo: String,
     pub repo_arch: String,
     pub broken: Vec<String>,
