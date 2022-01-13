@@ -6,6 +6,8 @@ use log::{debug, error, info};
 
 use serde::Deserialize;
 
+// TODO: add statistics for which overrides are actually used
+
 const OVERRIDES_FILENAME: &str = "overrides.json";
 
 pub type Overrides = HashMap<String, ReleaseOverrides>;

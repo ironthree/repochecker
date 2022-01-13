@@ -200,13 +200,54 @@ pub(crate) async fn worker(state: GlobalState, entry: MatrixEntry) {
 }
 
 pub(crate) async fn server(state: GlobalState) {
-    // TODO: index at /data/ that lists currently known releases
+    let index_state = state.clone();
+
+    let index = warp::path!("index.html").map(move || {
+        let values: Vec<String> = {
+            let guard = index_state.read().expect("Found a poisoned lock.");
+            let state = &*guard;
+            state.values.keys().cloned().collect()
+        };
+
+        let release_list = {
+            let mut releases: Vec<String> = values
+                .into_iter()
+                .map(|s| format!("<li><a href=\"/data/{}\">Fedora {}</a></li>", s, s))
+                .collect();
+            releases.sort();
+            releases.reverse();
+            releases.join("\n")
+        };
+
+        let body = format!(
+            r#"
+<html>
+<head>
+<title>repochecker</title>
+</head>
+<body>
+<h1>Welcome to repochecker!</h1>
+<h2>Data for the following releases is available:</h2>
+<ul>
+{}
+</ul>
+</body>
+</html>"#,
+            release_list
+        );
+
+        warp::http::Response::builder()
+            .header("Content-Type", "text/html")
+            .body(body)
+            .expect("Failed to construct response for index page.")
+    });
+
+    let release_state = state.clone();
 
     let data = warp::path!("data" / String).map(move |release| {
         let values = {
-            let guard = state.read().expect("Found a poisoned lock.");
+            let guard = release_state.read().expect("Found a poisoned lock.");
             let state = &*guard;
-
             state.values.get(&release).cloned()
         };
 
@@ -231,7 +272,7 @@ pub(crate) async fn server(state: GlobalState) {
             .expect("Failed to construct generic 404 response.")
     });
 
-    let server = data.or(error);
+    let server = index.or(data).or(error);
 
     warp::serve(server).run(([127, 0, 0, 1], 3030)).await;
 }
