@@ -1,0 +1,14 @@
+<html>
+<head>
+    <title>repochecker</title>
+</head>
+<body>
+<h1>Welcome to repochecker!</h1>
+<h2>Data for the following releases is available:</h2>
+<ul>
+{% for release in releases %}
+    <li><a href="/data/{{release}}">Fedora {{release}}</a></li>
+{% endfor %}
+</ul>
+</body>
+</html>

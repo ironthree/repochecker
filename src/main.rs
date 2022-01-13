@@ -7,6 +7,7 @@ mod pagure;
 mod parse;
 mod repo;
 mod server;
+mod templates;
 mod utils;
 
 use std::sync::{Arc, RwLock};

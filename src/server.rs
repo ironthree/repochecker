@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
+use askama::Template;
 use chrono::Utc;
 use log::{error, info};
 use warp::Filter;
@@ -10,6 +11,7 @@ use crate::data::BrokenItem;
 use crate::overrides::{get_overrides, Overrides};
 use crate::pagure::{get_admins, get_maintainers};
 use crate::repo::get_repo_closure;
+use crate::templates::Index;
 use crate::utils::{get_json_path, read_json_from_file, write_json_to_file};
 
 pub(crate) struct State {
@@ -202,44 +204,28 @@ pub(crate) async fn worker(state: GlobalState, entry: MatrixEntry) {
 pub(crate) async fn server(state: GlobalState) {
     let index_state = state.clone();
 
-    let index = warp::path!("index.html").map(move || {
-        let values: Vec<String> = {
+    let index = warp::path::end().and(warp::get()).map(move || {
+        let mut releases: Vec<String> = {
             let guard = index_state.read().expect("Found a poisoned lock.");
             let state = &*guard;
             state.values.keys().cloned().collect()
         };
 
-        let release_list = {
-            let mut releases: Vec<String> = values
-                .into_iter()
-                .map(|s| format!("<li><a href=\"/data/{}\">Fedora {}</a></li>", s, s))
-                .collect();
-            releases.sort();
-            releases.reverse();
-            releases.join("\n")
-        };
+        releases.sort();
+        releases.reverse();
 
-        let body = format!(
-            r#"
-<html>
-<head>
-<title>repochecker</title>
-</head>
-<body>
-<h1>Welcome to repochecker!</h1>
-<h2>Data for the following releases is available:</h2>
-<ul>
-{}
-</ul>
-</body>
-</html>"#,
-            release_list
-        );
+        let index = Index::new(releases);
 
-        warp::http::Response::builder()
-            .header("Content-Type", "text/html")
-            .body(body)
-            .expect("Failed to construct response for index page.")
+        match index.render() {
+            Ok(body) => warp::http::Response::builder()
+                .header("Content-Type", "text/html")
+                .body(body)
+                .expect("Failed to construct response for index page."),
+            Err(error) => warp::http::Response::builder()
+                .status(500)
+                .body(format!("Internal template rendering error: {}", error))
+                .expect("Failed to construct error 500 response."),
+        }
     });
 
     let release_state = state.clone();
