@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::data::BrokenItem;
 
@@ -20,7 +20,7 @@ pub fn get_json_path(release: &str, testing: bool) -> PathBuf {
     path
 }
 
-pub fn write_json_to_file(path: &PathBuf, broken: &[BrokenItem]) -> Result<(), String> {
+pub fn write_json_to_file(path: &Path, broken: &[BrokenItem]) -> Result<(), String> {
     let json = match serde_json::to_string_pretty(&broken) {
         Ok(json) => json,
         Err(_) => return Err(String::from("Failed to serialize broken dependencies into JSON.")),
@@ -39,7 +39,7 @@ pub fn write_json_to_file(path: &PathBuf, broken: &[BrokenItem]) -> Result<(), S
     Ok(())
 }
 
-pub fn read_json_from_file(path: &PathBuf) -> Result<Vec<BrokenItem>, String> {
+pub fn read_json_from_file(path: &Path) -> Result<Vec<BrokenItem>, String> {
     if !path.exists() {
         return Err(String::from("Data has not been generated yet."));
     }

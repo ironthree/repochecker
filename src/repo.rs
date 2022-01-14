@@ -44,7 +44,7 @@ async fn make_cache(release: &str, arch: &str, repos: &[String]) -> Result<(), S
             "{}",
             match String::from_utf8(output.stdout) {
                 Ok(string) => string,
-                Err(error) => format!("Failed to decode dnf output: {}", error.to_string()),
+                Err(error) => format!("Failed to decode dnf output: {}", error),
             }
         );
 
@@ -52,7 +52,7 @@ async fn make_cache(release: &str, arch: &str, repos: &[String]) -> Result<(), S
             "{}",
             match String::from_utf8(output.stderr) {
                 Ok(string) => string,
-                Err(error) => format!("Failed to decode dnf output: {}", error.to_string()),
+                Err(error) => format!("Failed to decode dnf output: {}", error),
             }
         );
 
@@ -105,14 +105,14 @@ async fn get_repo_contents(release: &str, arch: &str, repos: &[String]) -> Resul
             "{}",
             match String::from_utf8(output.stdout) {
                 Ok(string) => string,
-                Err(error) => format!("Failed to decode dnf output: {}", error.to_string()),
+                Err(error) => format!("Failed to decode dnf output: {}", error),
             }
         );
         debug!(
             "{}",
             match String::from_utf8(output.stderr) {
                 Ok(string) => string,
-                Err(error) => format!("Failed to decode dnf output: {}", error.to_string()),
+                Err(error) => format!("Failed to decode dnf output: {}", error),
             }
         );
         return Err(String::from("dnf repoquery exited with an error code."));
@@ -258,6 +258,7 @@ async fn get_repo_closure_arched(
     Ok(all_broken)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn get_repo_closure(
     release: &str,
     arches: &[String],
