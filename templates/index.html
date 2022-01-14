@@ -7,7 +7,13 @@
 <h2>Data for the following releases is available:</h2>
 <ul>
 {% for release in releases %}
-    <li><a href="/data/{{release}}">Fedora {{release}}</a></li>
+    <li><a href="/data/{{release}}">Fedora {{ release }}</a></li>
+{% endfor %}
+</ul>
+<h2>Number of entries per release:</h2>
+<ul>
+{% for (release, number) in stats %}
+    <li>Fedora {{ release }}: {{ number }}</li>
 {% endfor %}
 </ul>
 </body>

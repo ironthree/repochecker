@@ -205,16 +205,27 @@ pub(crate) async fn server(state: GlobalState) {
     let index_state = state.clone();
 
     let index = warp::path::end().and(warp::get()).map(move || {
-        let mut releases: Vec<String> = {
+        let (mut releases, mut stats): (Vec<String>, Vec<(String, usize)>) = {
             let guard = index_state.read().expect("Found a poisoned lock.");
             let state = &*guard;
-            state.values.keys().cloned().collect()
+
+            (
+                state.values.keys().cloned().collect(),
+                state
+                    .values
+                    .iter()
+                    .map(|(release, broken_items)| (release.to_owned(), broken_items.len()))
+                    .collect(),
+            )
         };
 
         releases.sort();
         releases.reverse();
 
-        let index = Index::new(releases);
+        stats.sort();
+        stats.reverse();
+
+        let index = Index::new(releases, stats);
 
         match index.render() {
             Ok(body) => warp::http::Response::builder()
