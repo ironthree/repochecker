@@ -2,10 +2,9 @@
 name = "repochecker"
 description = "analyse dnf/yum repository data for broken dependencies"
 license = "MIT OR Apache-2.0"
-
 publish = false
 
-version = "0.4.1"
+version = "0.4.2"
 edition = "2018"
 
 authors = ["Fabio Valentini <decathorpe@gmail.com>"]
