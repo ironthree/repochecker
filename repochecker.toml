@@ -5,6 +5,12 @@ interval = 4
 [[release]]
 name = "rawhide"
 type = "rawhide"
+arches = ["x86_64", "aarch64", "ppc64le", "s390x"]
+archived = false
+
+[[release]]
+name = "36"
+type = "stable"
 arches = ["x86_64", "aarch64", "armv7hl", "ppc64le", "s390x"]
 archived = false
 
