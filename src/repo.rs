@@ -1,12 +1,13 @@
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
+use std::sync::{Arc, RwLock};
 
 use log::{debug, error};
 
 use tokio::process::Command;
 
 use crate::data::{BrokenItem, Package};
-use crate::overrides::{is_overridden, Overrides};
+use crate::overrides::Overrides;
 use crate::parse::{parse_repoclosure, parse_repoquery};
 
 fn get_cache_path(release: &str, arch: &str) -> Result<PathBuf, String> {
@@ -259,13 +260,13 @@ async fn get_repo_closure_arched(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub async fn get_repo_closure(
+pub async fn get_repo_closure<'a>(
     release: &str,
     arches: &[String],
     multi_arch: &HashMap<String, Vec<String>>,
     repos: &[String],
     check: &[String],
-    overrides: &Overrides,
+    overrides: Arc<RwLock<Overrides>>,
     admins: &HashMap<String, String>,
     maintainers: &HashMap<String, Vec<String>>,
 ) -> Result<Vec<BrokenItem>, String> {
@@ -312,7 +313,9 @@ pub async fn get_repo_closure(
     for arch in arches {
         make_cache(release, arch, repos).await?;
 
-        let multi = multi_arch.get(arch).unwrap();
+        let multi = multi_arch
+            .get(arch)
+            .unwrap_or_else(|| panic!("Invalid configuration for release {}", release));
         let arch_excluded = excluded.get(arch.as_str()).expect("Something went terribly wrong.");
 
         let mut broken = get_repo_closure_arched(release, arch, multi, repos, check, admins, maintainers).await?;
@@ -328,8 +331,10 @@ pub async fn get_repo_closure(
         let arch = item.repo_arch.clone();
         let package = item.package.clone();
 
-        item.broken
-            .retain(|broken| !is_overridden(overrides, release, &arch, &package, broken))
+        item.broken.retain(|broken| {
+            let mut guard = overrides.write().expect("Poisoned lock!");
+            !guard.lookup(release, &arch, &package, broken)
+        })
     });
 
     all_broken.retain(|item| !item.broken.is_empty());

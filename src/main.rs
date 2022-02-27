@@ -16,7 +16,7 @@ use std::time::{Duration, Instant};
 use log::{error, info};
 
 use config::get_config;
-use overrides::get_overrides;
+use overrides::Overrides;
 use pagure::{get_admins, get_maintainers};
 use server::{GlobalState, State};
 
@@ -25,7 +25,7 @@ async fn main() -> Result<(), String> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     let config = get_config()?;
-    let overrides = get_overrides()?;
+    let overrides = Overrides::load_from_disk()?;
 
     let admins = tokio::spawn(get_admins(15))
         .await

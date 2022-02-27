@@ -8,7 +8,7 @@ use warp::Filter;
 
 use crate::config::{get_config, Config, MatrixEntry};
 use crate::data::BrokenItem;
-use crate::overrides::{get_overrides, Overrides};
+use crate::overrides::Overrides;
 use crate::pagure::{get_admins, get_maintainers};
 use crate::repo::get_repo_closure;
 use crate::templates::Index;
@@ -16,7 +16,7 @@ use crate::utils::{get_json_path, read_json_from_file, write_json_to_file};
 
 pub(crate) struct State {
     pub(crate) config: Config,
-    pub(crate) overrides: Overrides,
+    pub(crate) overrides: Arc<RwLock<Overrides>>,
     pub(crate) admins: HashMap<String, String>,
     pub(crate) maintainers: HashMap<String, Vec<String>>,
     pub(crate) values: HashMap<String, Arc<Vec<BrokenItem>>>,
@@ -31,7 +31,7 @@ impl State {
     ) -> State {
         State {
             config,
-            overrides,
+            overrides: Arc::new(RwLock::new(overrides)),
             admins,
             maintainers,
             values: HashMap::new(),
@@ -51,11 +51,11 @@ pub(crate) async fn watcher(state: GlobalState) {
         Err(error) => error!("Failed to read updated configuration: {}", error),
     };
 
-    match get_overrides() {
+    match Overrides::load_from_disk() {
         Ok(overrides) => {
             let mut guard = state.write().expect("Found a poisoned lock.");
             let mut state = &mut *guard;
-            state.overrides = overrides;
+            state.overrides = Arc::new(RwLock::new(overrides));
         },
         Err(error) => error!("Failed to read updated overrides: {}", error),
     };
@@ -148,7 +148,7 @@ pub(crate) async fn worker(state: GlobalState, entry: MatrixEntry) {
         &multi_arch,
         &entry.repos,
         &entry.check,
-        &overrides,
+        overrides,
         &admins,
         &maintainers,
     )
@@ -240,7 +240,6 @@ pub(crate) async fn server(state: GlobalState) {
     });
 
     let release_state = state.clone();
-
     let data = warp::path!("data" / String).map(move |release| {
         let values = {
             let guard = release_state.read().expect("Found a poisoned lock.");
@@ -260,6 +259,33 @@ pub(crate) async fn server(state: GlobalState) {
         }
     });
 
+    let config_state = state.clone();
+    let config = warp::path!("config").map(move || {
+        let values = {
+            let state = config_state.read().expect("Found a poisoned lock.");
+            toml::to_string_pretty(&state.config).expect("Failed to serialize into TOML.")
+        };
+
+        warp::http::Response::builder()
+            .header("Content-Type", "text/plain")
+            .body(values)
+            .expect("Failed to construct config response.")
+    });
+
+    let stats_state = state.clone();
+    let stats = warp::path!("stats").map(move || {
+        let values = {
+            let state = stats_state.read().expect("Found a poisoned lock.");
+            state.overrides.clone()
+        };
+
+        let overrides = values.read().expect("Found a poisoned lock.");
+        warp::http::Response::builder()
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string_pretty(&overrides.stats).expect("Failed to serialize into JSON."))
+            .expect("Failed to construct stats response.")
+    });
+
     let error = warp::any().map(|| {
         warp::http::Response::builder()
             .status(404)
@@ -269,7 +295,7 @@ pub(crate) async fn server(state: GlobalState) {
             .expect("Failed to construct generic 404 response.")
     });
 
-    let server = index.or(data).or(error);
+    let server = index.or(data).or(config).or(stats).or(error);
 
     warp::serve(server).run(([127, 0, 0, 1], 3030)).await;
 }

@@ -3,11 +3,11 @@ use std::path::{Path, PathBuf};
 
 use log::info;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 const CONFIG_FILENAME: &str = "repochecker.toml";
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Config {
     pub repochecker: RepoCheckerConfig,
     pub repos: RepoConfig,
@@ -17,12 +17,12 @@ pub struct Config {
     pub releases: Vec<ReleaseConfig>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RepoCheckerConfig {
     pub interval: u64,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RepoConfig {
     pub stable: Vec<String>,
     pub updates: Vec<String>,
@@ -30,13 +30,13 @@ pub struct RepoConfig {
     pub rawhide: Vec<String>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ArchConfig {
     pub name: String,
     pub multiarch: Vec<String>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ReleaseConfig {
     pub name: String,
     #[serde(rename = "type")]
@@ -45,7 +45,7 @@ pub struct ReleaseConfig {
     pub archived: bool,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ReleaseType {
     #[serde(rename = "rawhide")]
     Rawhide,
