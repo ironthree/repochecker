@@ -4,7 +4,12 @@ use std::sync::{Arc, RwLock};
 use askama::Template;
 use chrono::Utc;
 use log::{error, info};
-use warp::Filter;
+
+use axum::extract::Path;
+use axum::http::header::CONTENT_TYPE;
+use axum::http::{HeaderMap, StatusCode};
+use axum::routing::get;
+use axum::{Router, Server};
 
 use crate::config::{get_config, Config, MatrixEntry};
 use crate::data::BrokenItem;
@@ -202,100 +207,129 @@ pub(crate) async fn worker(state: GlobalState, entry: MatrixEntry) {
 }
 
 pub(crate) async fn server(state: GlobalState) {
+    let router = Router::new();
+
     let index_state = state.clone();
+    let router = router.route(
+        "/",
+        get(move || async move {
+            let (mut releases, mut stats): (Vec<String>, Vec<(String, usize)>) = {
+                let guard = index_state.read().expect("Found a poisoned lock.");
+                let state = &*guard;
 
-    let index = warp::path::end().and(warp::get()).map(move || {
-        let (mut releases, mut stats): (Vec<String>, Vec<(String, usize)>) = {
-            let guard = index_state.read().expect("Found a poisoned lock.");
-            let state = &*guard;
-
-            (
-                state.values.keys().cloned().collect(),
-                state
+                let releases = state.values.keys().cloned().collect();
+                let stats = state
                     .values
                     .iter()
                     .map(|(release, broken_items)| (release.to_owned(), broken_items.len()))
-                    .collect(),
-            )
-        };
+                    .collect();
+                (releases, stats)
+            };
 
-        releases.sort();
-        releases.reverse();
+            releases.sort();
+            releases.reverse();
 
-        stats.sort();
-        stats.reverse();
+            stats.sort();
+            stats.reverse();
 
-        let index = Index::new(releases, stats);
-
-        match index.render() {
-            Ok(body) => warp::http::Response::builder()
-                .header("Content-Type", "text/html")
-                .body(body)
-                .expect("Failed to construct response for index page."),
-            Err(error) => warp::http::Response::builder()
-                .status(500)
-                .body(format!("Internal template rendering error: {}", error))
-                .expect("Failed to construct error 500 response."),
-        }
-    });
+            let index = Index::new(releases, stats);
+            match index.render() {
+                Ok(body) => {
+                    let mut headers = HeaderMap::new();
+                    headers.insert(
+                        CONTENT_TYPE,
+                        "text/html".parse().expect("Failed to parse hardcoded header value."),
+                    );
+                    (StatusCode::OK, headers, body)
+                },
+                Err(error) => (StatusCode::INTERNAL_SERVER_ERROR, HeaderMap::new(), error.to_string()),
+            }
+        }),
+    );
 
     let release_state = state.clone();
-    let data = warp::path!("data" / String).map(move |release| {
-        let values = {
-            let guard = release_state.read().expect("Found a poisoned lock.");
-            let state = &*guard;
-            state.values.get(&release).cloned()
-        };
+    let router = router.route(
+        "/data/:release",
+        get(move |release: Path<String>| async move {
+            let values = {
+                let guard = release_state.read().expect("Found a poisoned lock.");
+                let state = &*guard;
+                state.values.get(&release.0).cloned()
+            };
 
-        match values {
-            Some(values) => warp::http::Response::builder()
-                .header("Content-Type", "application/json")
-                .body(serde_json::to_string_pretty(&*values).expect("Failed to serialize into JSON."))
-                .expect("Failed to construct data response."),
-            None => warp::http::Response::builder()
-                .status(404)
-                .body(String::from("This release does not exist."))
-                .expect("Failed to construct data 404 response."),
-        }
-    });
+            match values {
+                Some(values) => {
+                    let mut headers = HeaderMap::new();
+                    headers.insert(
+                        CONTENT_TYPE,
+                        "application/json"
+                            .parse()
+                            .expect("Failed to parse hardcoded header value."),
+                    );
+                    let body = serde_json::to_string_pretty(&*values).expect("Failed to serialize into JSON.");
+                    (StatusCode::OK, headers, body)
+                },
+                None => {
+                    let body = String::from("This release does not exist.");
+                    (StatusCode::NOT_FOUND, HeaderMap::new(), body)
+                },
+            }
+        }),
+    );
 
     let config_state = state.clone();
-    let config = warp::path!("config").map(move || {
-        let values = {
-            let state = config_state.read().expect("Found a poisoned lock.");
-            toml::to_string_pretty(&state.config).expect("Failed to serialize into TOML.")
-        };
+    let router = router.route(
+        "/config",
+        get(move || async move {
+            let values = {
+                let state = config_state.read().expect("Found a poisoned lock.");
+                toml::to_string_pretty(&state.config).expect("Failed to serialize into TOML.")
+            };
 
-        warp::http::Response::builder()
-            .header("Content-Type", "text/plain")
-            .body(values)
-            .expect("Failed to construct config response.")
-    });
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                CONTENT_TYPE,
+                "text/plain".parse().expect("Failed to parse hardcoded header value."),
+            );
+            (StatusCode::OK, headers, values)
+        }),
+    );
 
     let stats_state = state.clone();
-    let stats = warp::path!("stats").map(move || {
-        let values = {
-            let state = stats_state.read().expect("Found a poisoned lock.");
-            state.overrides.clone()
-        };
+    let router = router.route(
+        "/stats",
+        get(move || async move {
+            let values = {
+                let state = stats_state.read().expect("Found a poisoned lock.");
+                state.overrides.clone()
+            };
 
-        let overrides = values.read().expect("Found a poisoned lock.");
-        warp::http::Response::builder()
-            .header("Content-Type", "application/json")
-            .body(serde_json::to_string_pretty(&overrides.stats).expect("Failed to serialize into JSON."))
-            .expect("Failed to construct stats response.")
-    });
+            let overrides = values.read().expect("Found a poisoned lock.");
 
-    let error = warp::any().map(|| {
-        warp::http::Response::builder()
-            .status(404)
-            .body(String::from(
-                "This page does not exist. Navigate to /data/{release} instead.",
-            ))
-            .expect("Failed to construct generic 404 response.")
-    });
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                CONTENT_TYPE,
+                "application/json"
+                    .parse()
+                    .expect("Failed to parse hardcoded header value."),
+            );
 
-    let server = index.or(data).or(config).or(stats).or(error);
+            let body = serde_json::to_string_pretty(&overrides.stats).expect("Failed to serialize into JSON.");
+            (StatusCode::OK, headers, body)
+        }),
+    );
 
-    warp::serve(server).run(([127, 0, 0, 1], 3030)).await;
+    // add custom 404 handler
+    let router = router.fallback(get(move || async move {
+        (
+            StatusCode::NOT_FOUND,
+            HeaderMap::new(),
+            String::from("This page does not exist."),
+        )
+    }));
+
+    Server::bind(&"127.0.0.1:3030".parse().expect("Failed to parse server address."))
+        .serve(router.into_make_service())
+        .await
+        .expect("Server failure.");
 }

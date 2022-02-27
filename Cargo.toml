@@ -15,6 +15,7 @@ repository = "https://pagure.io/ironthree/repochecker"
 
 [dependencies]
 askama = "^0.10"
+axum = "0.4.6"
 chrono = { version = "^0.4", features = ["serde"] }
 env_logger = "^0.8.1"
 log = "^0.4.8"
@@ -23,7 +24,6 @@ serde = { version = "^1.0", features = ["derive"] }
 serde_json = "^1.0"
 tokio = { version = "^1.0", features = ["macros", "process", "rt-multi-thread", "time"] }
 toml = "^0.5.6"
-warp = "^0.3"
 
 [profile.release]
 codegen-units = 1

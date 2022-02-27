@@ -331,10 +331,9 @@ pub async fn get_repo_closure<'a>(
         let arch = item.repo_arch.clone();
         let package = item.package.clone();
 
-        item.broken.retain(|broken| {
-            let mut guard = overrides.write().expect("Poisoned lock!");
-            !guard.lookup(release, &arch, &package, broken)
-        })
+        let mut guard = overrides.write().expect("Poisoned lock!");
+        item.broken
+            .retain(|broken| !guard.lookup(release, &arch, &package, broken))
     });
 
     all_broken.retain(|item| !item.broken.is_empty());
