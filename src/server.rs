@@ -1,9 +1,11 @@
 use std::collections::HashMap;
+use std::net::SocketAddr;
 use std::sync::{Arc, RwLock};
 
 use askama::Template;
 use chrono::Utc;
 use log::{error, info};
+use serde::Serialize;
 
 use axum::extract::Path;
 use axum::http::header::CONTENT_TYPE;
@@ -304,7 +306,26 @@ pub(crate) async fn server(state: GlobalState) {
                 state.overrides.clone()
             };
 
-            let overrides = values.read().expect("Found a poisoned lock.");
+            let body = {
+                let overrides = values.read().expect("Found a poisoned lock.");
+                let stats = &overrides.stats;
+
+                #[derive(Serialize)]
+                struct StatsEntry<'a> {
+                    path: &'a str,
+                    count: u32,
+                }
+
+                let mut output: Vec<StatsEntry> = stats
+                    .iter()
+                    .map(|(path, count)| StatsEntry { path, count: *count })
+                    .collect();
+
+                output.sort_by_key(|b| b.count);
+                output.reverse();
+
+                serde_json::to_string_pretty(&output).expect("Failed to serialize into JSON.")
+            };
 
             let mut headers = HeaderMap::new();
             headers.insert(
@@ -314,7 +335,6 @@ pub(crate) async fn server(state: GlobalState) {
                     .expect("Failed to parse hardcoded header value."),
             );
 
-            let body = serde_json::to_string_pretty(&overrides.stats).expect("Failed to serialize into JSON.");
             (StatusCode::OK, headers, body)
         }),
     );
@@ -328,7 +348,10 @@ pub(crate) async fn server(state: GlobalState) {
         )
     }));
 
-    Server::bind(&"127.0.0.1:3030".parse().expect("Failed to parse server address."))
+    let address: SocketAddr = "127.0.0.1:3030".parse().expect("Failed to parse server address.");
+    info!("Listening on http://{} ...", &address);
+
+    Server::bind(&address)
         .serve(router.into_make_service())
         .await
         .expect("Server failure.");

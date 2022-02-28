@@ -22,7 +22,10 @@ use server::{GlobalState, State};
 
 #[tokio::main(worker_threads = 16)]
 async fn main() -> Result<(), String> {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Info)
+        .parse_env("REPOCHECKER_LOG")
+        .init();
 
     let config = get_config()?;
     let overrides = Overrides::load_from_disk()?;

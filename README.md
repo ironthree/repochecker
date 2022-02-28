@@ -30,6 +30,9 @@ added after the branch point, old releases are removed after they reach their EO
 switched from `prerelease` to `stable` after a fedora release reaches GA. The refresh interval for repository data and
 package maintainers can also be configured (in number of hours).
 
+The `REPOCHECKER_LOG` environment variable can be used to increase logger verbosity, for example by setting the logging
+level for `repochecker` itself to `debug`: `REPOCHECKER_LOG=repochecker=debug repochecker`
+
 ## deployment
 
 An example systemd unit file is provided in the `etc` directory. By default, `repochecker` will check the following
