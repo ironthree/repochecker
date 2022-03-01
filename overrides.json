@@ -1,80 +1,13 @@
 {
-  "31": {
-    "aarch64": {},
-    "all": {},
-    "armv7hl": {},
-    "i686": {},
-    "ppc64le": {
-      "pkgconfig(Qt5WebEngine)": [
-        "mscore"
-      ],
-      "qt5-qtwebengine-devel": [
-        "mscore"
-      ]
-    },
-    "s390x": {
-      "pkgconfig(Qt5WebEngine)": [
-        "mscore"
-      ],
-      "qt5-qtwebengine-devel": [
-        "mscore"
-      ]
-    },
-    "x86_64": {}
-  },
-  "32": {
-    "aarch64": {},
-    "all": {},
-    "armv7hl": {},
-    "i686": {},
-    "ppc64le": {
-      "pkgconfig(Qt5WebEngine)": [
-        "mscore"
-      ]
-    },
-    "s390x": {
-      "pkgconfig(Qt5WebEngine)": [
-        "mscore"
-      ]
-    },
-    "x86_64": {}
-  },
-  "33": {
-    "aarch64": {},
-    "all": {},
-    "armv7hl": {},
-    "i686": {},
-    "ppc64le": {
-      "pkgconfig(Qt5WebEngine)": [
-        "mscore"
-      ]
-    },
-    "s390x": {
-      "(python3.9dist(img2pdf) < 0.5 with python3.9dist(img2pdf) >= 0.3)": [
-        "ocrmypdf"
-      ],
-      "pkgconfig(Qt5WebEngine)": [
-        "mscore"
-      ]
-    },
-    "x86_64": {}
-  },
   "34": {
     "aarch64": {},
     "all": {},
     "armv7hl": {},
     "i686": {},
-    "ppc64le": {
-      "pkgconfig(Qt5WebEngine)": [
-        "mscore"
-      ]
-    },
+    "ppc64le": {},
     "s390x": {
       "(python3.9dist(img2pdf) < 0.5 with python3.9dist(img2pdf) >= 0.3)": [
         "ocrmypdf"
-      ],
-      "pkgconfig(Qt5WebEngine)": [
-        "mscore"
       ]
     },
     "x86_64": {}
@@ -84,16 +17,8 @@
     "all": {},
     "armv7hl": {},
     "i686": {},
-    "ppc64le": {
-      "pkgconfig(Qt5WebEngine)": [
-        "mscore"
-      ]
-    },
-    "s390x": {
-      "pkgconfig(Qt5WebEngine)": [
-        "mscore"
-      ]
-    },
+    "ppc64le": {},
+    "s390x": {},
     "x86_64": {}
   },
   "36": {
@@ -101,153 +26,50 @@
     "all": {},
     "armv7hl": {},
     "i686": {},
-    "ppc64le": {
-      "pkgconfig(Qt5WebEngine)": [
-        "mscore"
-      ]
-    },
-    "s390x": {
-      "pkgconfig(Qt5WebEngine)": [
-        "mscore"
-      ]
-    },
+    "ppc64le": {},
+    "s390x": {},
     "x86_64": {}
   },
   "all": {
-    "aarch64": {
-      "java-1.8.0-openjdk-aarch32-devel": [
-        "antlr4-project",
-        "java-1.8.0-openjdk-aarch32",
-        "jna",
-        "netty"
-      ]
-    },
-    "all": {
-      "(python3-importlib-metadata if python3 < 3.8)": [
-        "python-pluggy"
-      ],
-      "(python3dist(importlib-metadata) >= 0.18 if python3 < 3.8)": [
-        "python-jaraco-packaging"
-      ],
-      "(python3dist(importlib-metadata) if python3 < 3.8)": [
-        "pyproject-rpm-macros"
-      ]
-    },
+    "aarch64": {},
+    "all": {},
     "armv7hl": {},
-    "i686": {
-      "java-1.8.0-openjdk-aarch32-devel": [
-        "antlr4-project",
-        "java-1.8.0-openjdk-aarch32",
-        "jna",
-        "netty"
-      ]
-    },
+    "i686": {},
     "ppc64le": {
       "cmake(Qt5WebEngine)": [
-        "akregator",
-        "blogilo",
-        "ghostwriter",
-        "grantlee-editor",
-        "kf5-messagelib",
-        "kmail",
         "konqueror",
-        "kontact",
-        "libquentier",
-        "psi-plus",
-        "quentier"
+        "psi-plus"
       ],
       "cmake(Qt5WebEngineWidgets)": [
-        "akregator",
-        "blogilo",
-        "ghostwriter",
-        "grantlee-editor",
-        "libksysguard",
-        "libquentier",
-        "parley",
-        "qevercloud",
-        "quentier"
-      ],
-      "java-1.8.0-openjdk-aarch32-devel": [
-        "antlr4-project",
-        "java-1.8.0-openjdk-aarch32",
-        "jna",
-        "netty"
+        "libksysguard"
       ],
       "pkgconfig(Qt5WebEngine)": [
-        "GoldenCheetah",
         "digikam",
-        "kalgebra",
-        "kdepim-addons",
-        "mellowplayer",
-        "orion",
-        "pyqtwebengine",
-        "python-qt5",
-        "rssguard",
+        "mscore",
         "rstudio"
       ],
       "python3-qt5-webengine": [
         "anki",
-        "eric",
-        "frescobaldi",
-        "mnemosyne"
+        "eric"
       ],
       "qt5-qtwebengine-devel": [
         "bibletime",
-        "calibre",
         "cutter-re",
-        "fxitx-libpinyin",
         "gpsbabel",
         "kbibtex",
-        "kdepim-runtime",
         "kdeplasma-addons",
-        "kf5-akonadi-contacts",
-        "kiwix-desktop",
-        "ktp-text-ui",
-        "libkgapi",
         "luminance-hdr",
-        "mediaconch",
-        "nextcloud-client",
         "otter-browser",
-        "qt5-qtwebview",
-        "root",
-        "ugene"
-      ],
-      "qt5-qtwebengine-devel > 5.12": [
-        "python-pyside2"
-      ],
-      "qt5-qtwebengine-devel > 5.13": [
-        "python-pyside2"
+        "root"
       ]
     },
     "s390x": {
       "cmake(Qt5WebEngine)": [
-        "akregator",
-        "blogilo",
-        "ghostwriter",
-        "grantlee-editor",
-        "kf5-messagelib",
-        "kmail",
         "konqueror",
-        "kontact",
-        "libquentier",
-        "psi-plus",
-        "quentier"
+        "psi-plus"
       ],
       "cmake(Qt5WebEngineWidgets)": [
-        "akregator",
-        "blogilo",
-        "grantlee-editor",
-        "libksysguard",
-        "libquentier",
-        "parley",
-        "qevercloud",
-        "quentier"
-      ],
-      "java-1.8.0-openjdk-aarch32-devel": [
-        "antlr4-project",
-        "java-1.8.0-openjdk-aarch32",
-        "jna",
-        "netty"
+        "libksysguard"
       ],
       "love": [
         "90-Second-Portraits"
@@ -256,89 +78,33 @@
         "collectd"
       ],
       "pkgconfig(Qt5WebEngine)": [
-        "GoldenCheetah",
         "digikam",
-        "kalgebra",
-        "kdepim-addons",
-        "mellowplayer",
-        "orion",
-        "pyqtwebengine",
-        "python-qt5",
-        "rssguard",
+        "mscore",
         "rstudio"
       ],
       "python3-qt5-webengine": [
         "anki",
-        "eric",
-        "frescobaldi",
-        "mnemosyne"
+        "eric"
       ],
       "qt5-qtwebengine-devel": [
         "bibletime",
-        "calibre",
         "cutter-re",
-        "fxitx-libpinyin",
         "gpsbabel",
         "kbibtex",
-        "kdepim-runtime",
         "kdeplasma-addons",
-        "kf5-akonadi-contacts",
-        "kiwix-desktop",
-        "ktp-text-ui",
-        "libkgapi",
         "luminance-hdr",
-        "mediaconch",
-        "nextcloud-client",
         "otter-browser",
-        "qt5-qtwebview",
-        "root",
-        "ugene"
-      ],
-      "qt5-qtwebengine-devel > 5.12": [
-        "python-pyside2"
-      ],
-      "qt5-qtwebengine-devel > 5.13": [
-        "python-pyside2"
-      ],
-      "root-core": [
-        "HepMC3"
-      ],
-      "root-hist": [
-        "HepMC3"
-      ],
-      "root-io": [
-        "HepMC3"
-      ],
-      "root-tree": [
-        "HepMC3"
+        "root"
       ]
     },
-    "x86_64": {
-      "java-1.8.0-openjdk-aarch32-devel": [
-        "antlr4-project",
-        "java-1.8.0-openjdk-aarch32",
-        "jna",
-        "netty"
-      ]
-    }
+    "x86_64": {}
   },
   "rawhide": {
     "aarch64": {},
     "all": {},
     "i686": {},
-    "ppc64le": {
-      "pkgconfig(Qt5WebEngine)": [
-        "mscore"
-      ]
-    },
-    "s390x": {
-      "(python3.9dist(img2pdf) < 0.5 with python3.9dist(img2pdf) >= 0.3)": [
-        "ocrmypdf"
-      ],
-      "pkgconfig(Qt5WebEngine)": [
-        "mscore"
-      ]
-    },
+    "ppc64le": {},
+    "s390x": {},
     "x86_64": {}
   }
 }
