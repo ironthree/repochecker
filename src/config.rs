@@ -19,7 +19,7 @@ pub struct Config {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RepoCheckerConfig {
-    pub interval: u64,
+    pub interval: f64,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

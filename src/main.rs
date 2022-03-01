@@ -30,16 +30,15 @@ async fn main() -> Result<(), String> {
     let config = get_config()?;
     let overrides = Overrides::load_from_disk()?;
 
-    let admins = tokio::spawn(get_admins(15))
-        .await
-        .map_err(|error| error.to_string())??;
+    // fetch main admins and lists of maintainers concurrently
+    let (admins, maintainers) = tokio::join!(tokio::spawn(get_admins(15)), tokio::spawn(get_maintainers(15)),);
+    let admins = admins.map_err(|error| error.to_string())??;
+    let maintainers = maintainers.map_err(|error| error.to_string())??;
 
-    let maintainers = tokio::spawn(get_maintainers(15))
-        .await
-        .map_err(|error| error.to_string())??;
-
+    // initialize global state
     let state: GlobalState = Arc::new(RwLock::new(State::init(config, overrides, admins, maintainers)));
 
+    // spawn server thread
     tokio::spawn(server::server(state.clone()));
 
     loop {
@@ -52,28 +51,31 @@ async fn main() -> Result<(), String> {
 
         let matrix = config.to_matrix()?;
 
-        // spawn worker threads (.collect() forces the iterator to be evaluated eagerly)
+        // spawn worker threads
         let handles: Vec<_> = matrix
             .into_iter()
             .map(|entry| tokio::spawn(server::worker(state.clone(), entry)))
             .collect();
 
-        // wait for threads to finish
+        // wait for worker threads
         for handle in handles {
             handle.await.map_err(|error| error.to_string())?;
         }
 
         let interval = config.repochecker.interval;
-        info!("Finished generating data. Refreshing in {} hours.", interval);
 
         let stop = Instant::now();
         let busy = stop - start;
 
-        let wait = Duration::from_secs(interval * 60 * 60) - busy;
+        let wait = Duration::from_secs_f64(interval * 60.0 * 60.0).saturating_sub(busy);
 
-        tokio::spawn(tokio::time::sleep(wait))
-            .await
-            .map_err(|error| error.to_string())?;
+        if !wait.is_zero() {
+            info!(
+                "Finished generating data. Refreshing in {:.1} hours.",
+                wait.as_secs_f64() / 3600.0
+            );
+            tokio::time::sleep(wait).await;
+        }
 
         if tokio::spawn(server::watcher(state.clone())).await.is_err() {
             error!("Failed to reload configuration from disk.");
