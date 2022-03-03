@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use log::{debug, error, info};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 const OVERRIDES_FILENAME: &str = "overrides.json";
 
@@ -13,7 +13,7 @@ pub type ReleaseOverrides = HashMap<String, PackageOverrides>;
 pub type PackageOverrides = HashMap<String, OverrideEntry>;
 pub type OverrideStats = HashMap<String, u32>;
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum OverrideEntry {
     All(String),

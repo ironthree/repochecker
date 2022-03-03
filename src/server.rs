@@ -283,7 +283,7 @@ pub(crate) async fn server(state: GlobalState) {
     let router = router.route(
         "/config",
         get(move || async move {
-            let values = {
+            let body = {
                 let state = config_state.read().expect("Found a poisoned lock.");
                 toml::to_string_pretty(&state.config).expect("Failed to serialize into TOML.")
             };
@@ -293,7 +293,29 @@ pub(crate) async fn server(state: GlobalState) {
                 CONTENT_TYPE,
                 "text/plain".parse().expect("Failed to parse hardcoded header value."),
             );
-            (StatusCode::OK, headers, values)
+            (StatusCode::OK, headers, body)
+        }),
+    );
+
+    let overrides_state = state.clone();
+    let router = router.route(
+        "/overrides",
+        get(move || async move {
+            let body = {
+                let state = overrides_state.read().expect("Found a poisoned lock.");
+                let overrides = state.overrides.read().expect("Found a poisoned lock.");
+                serde_json::to_string_pretty(&overrides.data).expect("Failed to serialize into JSON.")
+            };
+
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                CONTENT_TYPE,
+                "application/json"
+                    .parse()
+                    .expect("Failed to parse hardcoded header value."),
+            );
+
+            (StatusCode::OK, headers, body)
         }),
     );
 
