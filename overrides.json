@@ -1,17 +1,4 @@
 {
-  "34": {
-    "aarch64": {},
-    "all": {},
-    "armv7hl": {},
-    "i686": {},
-    "ppc64le": {},
-    "s390x": {
-      "(python3.9dist(img2pdf) < 0.5 with python3.9dist(img2pdf) >= 0.3)": [
-        "ocrmypdf"
-      ]
-    },
-    "x86_64": {}
-  },
   "35": {
     "aarch64": {},
     "all": {},
@@ -41,6 +28,22 @@
     },
     "s390x": {
       "pkgconfig(Qt5WebEngine)": [
+        "rstudio"
+      ]
+    },
+    "x86_64": {}
+  },
+  "37": {
+    "aarch64": {},
+    "all": {},
+    "i686": {},
+    "ppc64le": {
+      "cmake(Qt5WebEngine)": [
+        "rstudio"
+      ]
+    },
+    "s390x": {
+      "cmake(Qt5WebEngine)": [
         "rstudio"
       ]
     },
