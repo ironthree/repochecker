@@ -59,6 +59,9 @@
         "konqueror",
         "psi-plus"
       ],
+      "cmake(Qt5WebEngine) >= 5.14": [
+        "python-pyside2"
+      ],
       "cmake(Qt5WebEngineWidgets)": [
         "libksysguard"
       ],
@@ -85,6 +88,9 @@
       "cmake(Qt5WebEngine)": [
         "konqueror",
         "psi-plus"
+      ],
+      "cmake(Qt5WebEngine) >= 5.14": [
+        "python-pyside2"
       ],
       "cmake(Qt5WebEngineWidgets)": [
         "libksysguard"
