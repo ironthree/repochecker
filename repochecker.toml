@@ -24,7 +24,7 @@ archived = false
 name = "35"
 type = "stable"
 arches = ["x86_64", "aarch64", "armv7hl", "ppc64le", "s390x"]
-archived = false
+archived = true
 
 [[release]]
 name = "34"
