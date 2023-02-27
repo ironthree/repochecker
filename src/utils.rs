@@ -32,7 +32,7 @@ pub fn write_json_to_file(path: &Path, broken: &[BrokenItem]) -> Result<(), Stri
         std::fs::create_dir_all(data_path).expect("Failed to create data directory.");
     }
 
-    if std::fs::write(&path, json).is_err() {
+    if std::fs::write(path, json).is_err() {
         return Err(format!("Failed to write data to disk: {}", &path.to_string_lossy()));
     }
 
@@ -44,7 +44,7 @@ pub fn read_json_from_file(path: &Path) -> Result<Vec<BrokenItem>, String> {
         return Err(String::from("Data has not been generated yet."));
     }
 
-    let string = match std::fs::read_to_string(&path) {
+    let string = match std::fs::read_to_string(path) {
         Ok(string) => string,
         Err(_) => return Err(String::from("Failed to read cached JSON data.")),
     };
