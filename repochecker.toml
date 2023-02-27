@@ -9,6 +9,12 @@ arches = ["x86_64", "aarch64", "ppc64le", "s390x"]
 archived = false
 
 [[release]]
+name = "38"
+type = "stable"
+arches = ["x86_64", "aarch64", "ppc64le", "s390x"]
+archived = false
+
+[[release]]
 name = "37"
 type = "stable"
 arches = ["x86_64", "aarch64", "ppc64le", "s390x"]
