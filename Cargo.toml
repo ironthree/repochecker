@@ -4,7 +4,7 @@ description = "analyse dnf/yum repository data for broken dependencies"
 license = "MIT OR Apache-2.0"
 publish = false
 
-version = "0.5.3"
+version = "0.5.4"
 edition = "2021"
 
 authors = ["Fabio Valentini <decathorpe@gmail.com>"]
