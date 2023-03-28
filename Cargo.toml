@@ -1,6 +1,6 @@
 [package]
 name = "repochecker"
-description = "analyse dnf/yum repository data for broken dependencies"
+description = "Service for analyzing DNF / YUM repository metadata for broken dependencies"
 license = "MIT OR Apache-2.0"
 publish = false
 
