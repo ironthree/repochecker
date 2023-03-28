@@ -285,7 +285,7 @@ pub(crate) async fn server(state: GlobalState) {
         get(move || async move {
             let body = {
                 let state = config_state.read().expect("Found a poisoned lock.");
-                toml::to_string_pretty(&state.config).expect("Failed to serialize into TOML.")
+                basic_toml::to_string(&state.config).expect("Failed to serialize into TOML.")
             };
 
             let mut headers = HeaderMap::new();

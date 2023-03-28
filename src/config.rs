@@ -101,7 +101,7 @@ pub fn get_config() -> Result<Config, String> {
         Err(error) => return Err(error.to_string()),
     };
 
-    let config: Config = match toml::from_str(&contents) {
+    let config: Config = match basic_toml::from_str(&contents) {
         Ok(config) => config,
         Err(error) => return Err(error.to_string()),
     };
