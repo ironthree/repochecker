@@ -1,38 +1,4 @@
 {
-  "35": {
-    "aarch64": {},
-    "all": {},
-    "armv7hl": {},
-    "i686": {},
-    "ppc64le": {
-      "pkgconfig(Qt5WebEngine)": [
-        "rstudio"
-      ]
-    },
-    "s390x": {
-      "pkgconfig(Qt5WebEngine)": [
-        "rstudio"
-      ]
-    },
-    "x86_64": {}
-  },
-  "36": {
-    "aarch64": {},
-    "all": {},
-    "armv7hl": {},
-    "i686": {},
-    "ppc64le": {
-      "pkgconfig(Qt5WebEngine)": [
-        "rstudio"
-      ]
-    },
-    "s390x": {
-      "pkgconfig(Qt5WebEngine)": [
-        "rstudio"
-      ]
-    },
-    "x86_64": {}
-  },
   "37": {
     "aarch64": {},
     "all": {},
@@ -45,6 +11,9 @@
     "s390x": {
       "cmake(Qt5WebEngine)": [
         "rstudio"
+      ],
+      "libcrystalhd-devel": [
+        "ffmpeg"
       ]
     },
     "x86_64": {}
@@ -72,14 +41,16 @@
     "i686": {},
     "ppc64le": {
       "cmake(Qt5WebEngine)": [
-        "konqueror",
-        "psi-plus"
+        "konqueror"
       ],
       "cmake(Qt5WebEngine) >= 5.14": [
         "python-pyside2"
       ],
       "cmake(Qt5WebEngineWidgets)": [
         "libksysguard"
+      ],
+      "luajit-devel": [
+        "obs-studio"
       ],
       "pkgconfig(Qt5WebEngine)": [
         "digikam",
@@ -102,8 +73,7 @@
     },
     "s390x": {
       "cmake(Qt5WebEngine)": [
-        "konqueror",
-        "psi-plus"
+        "konqueror"
       ],
       "cmake(Qt5WebEngine) >= 5.14": [
         "python-pyside2"
@@ -114,12 +84,24 @@
       "love": [
         "90-Second-Portraits"
       ],
+      "luajit-devel": [
+        "obs-studio"
+      ],
       "nut-devel": [
         "collectd"
       ],
       "pkgconfig(Qt5WebEngine)": [
         "digikam",
         "mscore"
+      ],
+      "pkgconfig(libavc1394)": [
+        "ffmpeg"
+      ],
+      "pkgconfig(libdc1394-2)": [
+        "ffmpeg"
+      ],
+      "pkgconfig(libiec61883)": [
+        "ffmpeg"
       ],
       "python3-qt5-webengine": [
         "anki",
