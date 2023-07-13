@@ -13,6 +13,7 @@ mod utils;
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
+use chrono::Utc;
 use log::{error, info};
 
 use config::get_config;
@@ -74,6 +75,7 @@ async fn main() -> Result<(), String> {
                 "Finished generating data. Refreshing in {:.1} hours.",
                 wait.as_secs_f64() / 3600.0
             );
+            state.write().expect("Found a poisoned lock.").date_refreshed = Some(Utc::now());
             tokio::time::sleep(wait).await;
         }
 

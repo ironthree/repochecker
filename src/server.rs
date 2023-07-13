@@ -3,7 +3,7 @@ use std::net::SocketAddr;
 use std::sync::{Arc, RwLock};
 
 use askama::Template;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use log::{error, info};
 use serde::Serialize;
 
@@ -27,6 +27,7 @@ pub(crate) struct State {
     pub(crate) admins: HashMap<String, String>,
     pub(crate) maintainers: HashMap<String, Vec<String>>,
     pub(crate) values: HashMap<String, Arc<Vec<BrokenItem>>>,
+    pub(crate) date_refreshed: Option<DateTime<Utc>>,
 }
 
 impl State {
@@ -42,6 +43,7 @@ impl State {
             admins,
             maintainers,
             values: HashMap::new(),
+            date_refreshed: None,
         }
     }
 }
@@ -215,7 +217,7 @@ pub(crate) async fn server(state: GlobalState) {
     let router = router.route(
         "/",
         get(move || async move {
-            let (mut releases, mut stats): (Vec<String>, Vec<(String, usize)>) = {
+            let (mut releases, mut stats, date_refreshed): (Vec<String>, Vec<(String, usize)>, String) = {
                 let guard = index_state.read().expect("Found a poisoned lock.");
                 let state = &*guard;
 
@@ -225,7 +227,13 @@ pub(crate) async fn server(state: GlobalState) {
                     .iter()
                     .map(|(release, broken_items)| (release.to_owned(), broken_items.len()))
                     .collect();
-                (releases, stats)
+
+                let date_refreshed = match state.date_refreshed {
+                    Some(dt) => dt.to_string(),
+                    None => String::from("(initial refresh still running after service was restarted)"),
+                };
+
+                (releases, stats, date_refreshed)
             };
 
             releases.sort();
@@ -234,7 +242,7 @@ pub(crate) async fn server(state: GlobalState) {
             stats.sort();
             stats.reverse();
 
-            let index = Index::new(releases, stats);
+            let index = Index::new(releases, stats, date_refreshed);
             match index.render() {
                 Ok(body) => {
                     let mut headers = HeaderMap::new();
@@ -347,6 +355,35 @@ pub(crate) async fn server(state: GlobalState) {
                 output.reverse();
 
                 serde_json::to_string_pretty(&output).expect("Failed to serialize into JSON.")
+            };
+
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                CONTENT_TYPE,
+                "application/json"
+                    .parse()
+                    .expect("Failed to parse hardcoded header value."),
+            );
+
+            (StatusCode::OK, headers, body)
+        }),
+    );
+
+    let status_state = state.clone();
+    let router = router.route(
+        "/status",
+        get(move || async move {
+            let value = status_state.read().expect("Found a poisoned lock.").date_refreshed;
+
+            let body = {
+                #[derive(Serialize)]
+                struct ServiceStatus {
+                    last_refreshed: Option<String>,
+                }
+
+                let last_refreshed = value.map(|dt| dt.to_string());
+
+                serde_json::to_string_pretty(&ServiceStatus { last_refreshed }).expect("Failed to serialize into JSON.")
             };
 
             let mut headers = HeaderMap::new();
