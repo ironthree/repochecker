@@ -1,5 +1,5 @@
 {
-  "37": {
+  "38": {
     "aarch64": {},
     "all": {},
     "i686": {},
@@ -11,14 +11,11 @@
     "s390x": {
       "cmake(Qt5WebEngine)": [
         "rstudio"
-      ],
-      "libcrystalhd-devel": [
-        "ffmpeg"
       ]
     },
     "x86_64": {}
   },
-  "38": {
+  "39": {
     "aarch64": {},
     "all": {},
     "i686": {},
