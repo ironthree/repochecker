@@ -150,6 +150,8 @@ pub(crate) fn parse_repoclosure(string: &str) -> Result<Vec<ClosureItem>, String
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used)]
+
     use super::ClosureItem;
 
     #[test]

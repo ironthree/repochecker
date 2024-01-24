@@ -54,7 +54,7 @@ pub(crate) async fn watcher(state: GlobalState) {
     match get_config() {
         Ok(config) => {
             let mut guard = state.write().expect("Found a poisoned lock.");
-            let mut state = &mut *guard;
+            let state = &mut *guard;
             state.config = config;
         },
         Err(error) => error!("Failed to read updated configuration: {}", error),
@@ -63,7 +63,7 @@ pub(crate) async fn watcher(state: GlobalState) {
     match Overrides::load_from_disk() {
         Ok(overrides) => {
             let mut guard = state.write().expect("Found a poisoned lock.");
-            let mut state = &mut *guard;
+            let state = &mut *guard;
             state.overrides = Arc::new(RwLock::new(overrides));
         },
         Err(error) => error!("Failed to read updated overrides: {}", error),
@@ -72,7 +72,7 @@ pub(crate) async fn watcher(state: GlobalState) {
     match get_admins(15).await {
         Ok(admins) => {
             let mut guard = state.write().expect("Found a poisoned lock.");
-            let mut state = &mut *guard;
+            let state = &mut *guard;
             state.admins = admins;
         },
         Err(error) => error!("Failed to read updated package maintainers: {}", error),
@@ -81,7 +81,7 @@ pub(crate) async fn watcher(state: GlobalState) {
     match get_maintainers(15).await {
         Ok(maintainers) => {
             let mut guard = state.write().expect("Found a poisoned lock.");
-            let mut state = &mut *guard;
+            let state = &mut *guard;
             state.maintainers = maintainers;
         },
         Err(error) => error!("Failed to read updated package maintainers: {}", error),
