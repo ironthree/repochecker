@@ -31,6 +31,22 @@
     },
     "x86_64": {}
   },
+  "41": {
+    "aarch64": {},
+    "all": {},
+    "i686": {},
+    "ppc64le": {
+      "cmake(Qt5WebEngine)": [
+        "rstudio"
+      ]
+    },
+    "s390x": {
+      "cmake(Qt5WebEngine)": [
+        "rstudio"
+      ]
+    },
+    "x86_64": {}
+  },
   "all": {
     "aarch64": {},
     "all": {},

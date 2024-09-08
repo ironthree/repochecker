@@ -17,6 +17,7 @@ VALID_ARCHES = [
 
 VALID_RELEASES = [
     "rawhide",
+    "41",
     "40",
     "39",
     "38",
