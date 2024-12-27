@@ -1,5 +1,8 @@
 # repochecker
 
+> [!WARNING]
+> The repochecker service has been decommissioned, and this project will no longer be updated.
+
 This repository contains the source and default configuration files for the `repochecker` service. It can read yum/dnf
 repositories (primarily targeted at fedora), analyze broken dependencies, remove false positives, take overrides from a
 configuration file into account, and serve the resulting statistics as JSON files and via a simple HTTP API.
